@@ -10,3 +10,7 @@ def error_response():
 
 def error_catching(error):
     return JSONResponse(status_code=500, content=error)
+
+def unauthorized_response():
+    return JSONResponse(status_code=401, content='Unauthorized request')
+

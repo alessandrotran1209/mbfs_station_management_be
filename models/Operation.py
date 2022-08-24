@@ -9,3 +9,4 @@ class OperationModel(BaseModel):
     old_station_code: str | None = None
     old_date: str | None = None
     old_work_code: str | None = None
+    note: str | None = None

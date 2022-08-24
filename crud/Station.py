@@ -24,22 +24,24 @@ class Station:
         client = mongo_conn.conn()
 
         station_collection = client['station']
-        records = station_collection.find({}, {"_id": 0, "code": 1, "province": 1})
+        records = station_collection.find({}, {"_id": 0, "station_code": 1, "province": 1})
         list_station_code = []
         for station in records:
             list_station_code.append(station)
 
         return list_station_code
 
-    def search_station(self, code='', province='', page=1):
+    def search_station(self, code='', province='', district='', page=1):
         mongo_conn = MongoConn()
         client = mongo_conn.conn()
 
         station_collection = client['station']
 
-        total = station_collection.count_documents({"code": {'$regex': code}, "province": {'$regex': province}})
-        records = station_collection.find({"code": {'$regex': code}, "province": {'$regex': province}},
-                                          {"_id": 0}).skip((page - 1) * 10).limit(10)
+        total = station_collection.count_documents(
+            {"station_code": {'$regex': code}, "province": {'$regex': province}, "district": {'$regex': district}})
+        records = station_collection.find(
+            {"station_code": {'$regex': code}, "province": {'$regex': province}, "district": {'$regex': district}},
+            {"_id": 0}).skip((page - 1) * 10).limit(10)
         list_station_code = []
 
         index = 1
