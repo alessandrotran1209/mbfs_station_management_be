@@ -51,3 +51,20 @@ class Station:
             index += 1
 
         return list_station_code, total
+
+    def list_operator_station(self, operator):
+        mongo_conn = MongoConn()
+        client = mongo_conn.conn()
+        user_collection = client['user']
+        fullname = ''
+        records = user_collection.find({"username": operator}, {})
+        for record in records:
+            fullname = record['fullname']
+
+        station_collection = client['station']
+        records = station_collection.find({"operator": fullname}, {"_id": 0, "station_code": 1, "province": 1})
+        list_station_code = []
+        for station in records:
+            list_station_code.append(station)
+
+        return list_station_code

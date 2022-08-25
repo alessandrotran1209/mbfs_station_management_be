@@ -41,18 +41,57 @@ async def root():
 async def say_hello(name: str):
     return {"message": f"Hello {name}"}
 
+@app.get("/statistics")
+async def list_stations(request: Request = None):
+    access_token = request.headers.get('Authorization').split()[-1]
+    if access_token == 'null':
+        return re.unauthorized_response()
+    user = await get_current_user(access_token)
+    operator_name = user.username
+    account = Account()
+    result = account.get_statistics(operator_name)
+    return re.success_response(data=result)
 
 @app.get("/station")
-async def list_stations(p: int = 1):
+async def list_stations(p: int = 1, request: Request = None):
+    access_token = request.headers.get('Authorization').split()[-1]
+    if access_token == 'null':
+        return re.unauthorized_response()
     station = Station()
     list_stations, total = station.list_stations(page=p)
     return re.success_response(list_stations, total)
 
 
 @app.get("/station/station_code")
-async def list_stations_code():
+async def list_operator_station_code(request: Request = None):
+    access_token = request.headers.get('Authorization').split()[-1]
+    if access_token == 'null':
+        return re.unauthorized_response()
+    user = await get_current_user(access_token)
     station = Station()
     list_stations_code = station.list_station_code()
+    return re.success_response(list_stations_code)
+
+
+@app.get("/station")
+async def list_stations(p: int = 1, request: Request = None):
+    access_token = request.headers.get('Authorization').split()[-1]
+    if access_token == 'null':
+        return re.unauthorized_response()
+    station = Station()
+    list_stations, total = station.list_stations(page=p)
+    return re.success_response(list_stations, total)
+
+
+@app.get("/station/operator")
+async def list_stations_code(request: Request):
+    access_token = request.headers.get('Authorization').split()[-1]
+    if access_token == 'null':
+        return re.unauthorized_response()
+    user = await get_current_user(access_token)
+    operator_name = user.username
+    station = Station()
+    list_stations_code = station.list_operator_station(operator_name)
     return re.success_response(list_stations_code)
 
 
@@ -79,11 +118,15 @@ async def list_operations(p: int, request: Request):
 
 
 @app.post("/operation/complete")
-async def complete_operation(operation_data: OperationModel):
+async def complete_operation(operation_data: OperationModel, request: Request):
+    access_token = request.headers.get('Authorization').split()[-1]
+    if access_token == 'null':
+        return re.unauthorized_response()
+    user = await get_current_user(access_token)
+    operator_name = user.username
     try:
-        print(operation_data)
         operation = Operation()
-        result = operation.complete_operation(operation_data.dict())
+        result = operation.complete_operation(operation_data.dict(), operator_name)
         if result:
             return re.success_response()
     except Exception as e:
@@ -93,18 +136,29 @@ async def complete_operation(operation_data: OperationModel):
 
 @app.get("/operation/q")
 async def search_operations(stationCode: str = '', startDate: str = '', endDate: str = '', status: str = '',
-                            p: int = 1):
+                            p: int = 1, request: Request = None):
+    access_token = request.headers.get('Authorization').split()[-1]
+    if access_token == 'null':
+        return re.unauthorized_response()
+    user = await get_current_user(access_token)
+    operator_name = user.username
     operation = Operation()
-    list_operations, total = operation.search_operation(station_code=stationCode, start_date=startDate,
+    list_operations, total = operation.search_operation(operator_name=operator_name, station_code=stationCode,
+                                                        start_date=startDate,
                                                         end_date=endDate, status=status, page=p)
     return re.success_response(list_operations, total)
 
 
 @app.post("/operation/update")
-async def update_operation(operation_data: OperationModel):
+async def update_operation(operation_data: OperationModel, request: Request = None):
+    access_token = request.headers.get('Authorization').split()[-1]
+    if access_token == 'null':
+        return re.unauthorized_response()
+    user = await get_current_user(access_token)
+    operator_name = user.username
     try:
         operation = Operation()
-        result = operation.update_operation(operation_data.dict())
+        result = operation.update_operation(operation_data.dict(), operator_name)
         if result:
             return re.success_response()
     except Exception as e:
@@ -112,10 +166,15 @@ async def update_operation(operation_data: OperationModel):
 
 
 @app.put("/operation")
-async def insert_operation(operation_data: OperationModel):
+async def insert_operation(operation_data: OperationModel, request: Request):
+    access_token = request.headers.get('Authorization').split()[-1]
+    if access_token == 'null':
+        return re.unauthorized_response()
+    user = await get_current_user(access_token)
+    operator_name = user.username
     try:
         operation = Operation()
-        result = operation.insert_operation(operation_data.dict())
+        result = operation.insert_operation(operation_data.dict(), operator_name)
         if result:
             return re.success_response()
     except Exception as e:

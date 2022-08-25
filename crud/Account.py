@@ -34,3 +34,28 @@ class Account:
         except Exception as e:
             raise Exception(e)
         return True
+
+    def get_statistics(self, operator):
+        mongo_conn = MongoConn()
+        client = mongo_conn.conn()
+        user_collection = client['user']
+        fullname = ''
+        records = user_collection.find({"username": operator}, {})
+        for record in records:
+            fullname = record['fullname']
+
+        operation_collection = client['operation']
+        total_operation = operation_collection.count_documents({"operator": operator})
+        total_completed_operation = operation_collection.count_documents({"operator": operator, 'status': 1})
+        total_uncompleted_operation = operation_collection.count_documents({"operator": operator, 'status': 0})
+
+        station_collection = client['station']
+        total_station = station_collection.count_documents({"operator": fullname})
+
+        result = {
+            "total_operation": total_operation,
+            "total_completed_operation": total_completed_operation,
+            "total_uncompleted_operation": total_uncompleted_operation,
+            "total_station": total_station
+        }
+        return result
