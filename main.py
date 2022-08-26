@@ -21,8 +21,9 @@ from geopy.distance import geodesic
 app = FastAPI()
 
 origins = [
-    "http://localhost:4200",
-    "https://mobi-hatang.herokuapp.com"
+    # "http://localhost:4200",
+    # "https://mobi-hatang.herokuapp.com",
+    "*"
 ]
 
 app.add_middleware(
