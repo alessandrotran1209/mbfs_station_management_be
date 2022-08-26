@@ -17,6 +17,12 @@ from models.UserAuth import UserAuth
 from models.UserOut import UserOut
 from utils.utils import create_access_token, create_refresh_token, verify_password, get_hashed_password
 from geopy.distance import geodesic
+import logging
+
+logging.config.fileConfig('logging.conf', disable_existing_loggers=False)
+
+# get root logger
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
@@ -213,15 +219,14 @@ async def create_user(data: UserAuth):
 
 @app.post('/login', summary="Create access and refresh tokens for user", response_model=TokenSchema)
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    logger.info(f'Logging in with: {form_data.username}/{form_data.password}')
     account = Account()
     user = account.get_user(form_data.username)
-    print(user)
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Incorrect email or password"
         )
-    print(user)
     hashed_pass = user['password']
     if not verify_password(form_data.password, hashed_pass):
         raise HTTPException(
