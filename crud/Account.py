@@ -18,9 +18,12 @@ class Account:
     def get_user(self, username):
         mongo_conn = MongoConn()
         client = mongo_conn.conn()
+        print(client.list_collection_names())
         user_collection = client['user']
+        print(user_collection)
         user = user_collection.find({"username": username})
         for record in user:
+            print(user)
             u = record
             return u
 

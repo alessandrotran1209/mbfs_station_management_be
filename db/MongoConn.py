@@ -4,7 +4,7 @@ import pymongo
 
 class MongoConn:
     def conn(self):
-        connection_string = "mongodb://localhost:27017"
+        connection_string = "mongodb+srv://admin:Xls5ZJ4JnmzP18YA@cluster0.u4qqauu.mongodb.net/test"
         client = MongoClient(connection_string)
 
-        return client['mbfs_work_management']
+        return client['hatang-db']

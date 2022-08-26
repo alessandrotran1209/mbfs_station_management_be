@@ -62,7 +62,7 @@ class Operation():
             records = operation_collection.find(
                 {"operator": operator_name, "station_code": {'$regex': station_code},
                  "start_date": {'$gte': start_date, '$lt': end_date}},
-                {"_id": 0}).skip((page - 1) * 10).limit(10).sort([("status", 1)]).collation(
+                {"_id": 0}).skip((page - 1) * 10).limit(10).sort([("status", 1), ("start_date", -1)]).collation(
                 Collation(locale="en_US", numericOrdering=True))
         else:
             total = operation_collection.count_documents(
@@ -110,6 +110,7 @@ class Operation():
         return True
 
     def insert_operation(self, operation, operator):
+        print(operation)
         try:
             mongo_conn = MongoConn()
             client = mongo_conn.conn()

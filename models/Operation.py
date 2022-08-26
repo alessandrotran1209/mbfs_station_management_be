@@ -10,3 +10,5 @@ class OperationModel(BaseModel):
     old_date: str | None = None
     old_work_code: str | None = None
     note: str | None = None
+    lat: str | None = None
+    lng: str | None = None

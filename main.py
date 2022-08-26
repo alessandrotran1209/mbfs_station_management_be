@@ -16,6 +16,7 @@ from models.TokenSchema import TokenSchema
 from models.UserAuth import UserAuth
 from models.UserOut import UserOut
 from utils.utils import create_access_token, create_refresh_token, verify_password, get_hashed_password
+from geopy.distance import geodesic
 
 app = FastAPI()
 
@@ -172,6 +173,13 @@ async def insert_operation(operation_data: OperationModel, request: Request):
         return re.unauthorized_response()
     user = await get_current_user(access_token)
     operator_name = user.username
+    station = Station()
+    station_lat, station_lng = station.get_station_coord(operation_data.station_code)
+    user_lat = operation_data.lat
+    user_lng = operation_data.lng
+
+    distance = geodesic((station_lat, station_lng), (user_lat,user_lng )).kilometers
+    print(distance)
     try:
         operation = Operation()
         result = operation.insert_operation(operation_data.dict(), operator_name)
@@ -205,12 +213,13 @@ async def create_user(data: UserAuth):
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     account = Account()
     user = account.get_user(form_data.username)
+    print(user)
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Incorrect email or password"
         )
-
+    print(user)
     hashed_pass = user['password']
     if not verify_password(form_data.password, hashed_pass):
         raise HTTPException(

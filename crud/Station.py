@@ -68,3 +68,13 @@ class Station:
             list_station_code.append(station)
 
         return list_station_code
+
+    def get_station_coord(self, station_code):
+        mongo_conn = MongoConn()
+        client = mongo_conn.conn()
+
+        station_collection = client['station']
+
+        record = station_collection.find_one(
+            {"station_code": station_code})
+        return record['lat'], record['long']
