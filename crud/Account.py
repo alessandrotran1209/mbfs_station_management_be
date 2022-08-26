@@ -2,6 +2,9 @@ import hashlib
 
 from db.MongoConn import MongoConn
 
+import logging
+
+logger = logging.getLogger(__name__)
 
 class Account:
 
@@ -22,6 +25,7 @@ class Account:
         user = user_collection.find({"username": username})
         for record in user:
             u = record
+            logger.info(record)
             return u
 
     def insert_user(self, data):
