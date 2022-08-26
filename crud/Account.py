@@ -9,7 +9,9 @@ logger = logging.getLogger(__name__)
 
 class Account:
 
-    def authenticate(self, client, username, password):
+    def authenticate(self, username, password):
+        mongo_conn = MongoConn()
+        client = mongo_conn.conn()
         user_collection = client['user']
         logger.info(user_collection)
         user = user_collection.find({"username": username})
