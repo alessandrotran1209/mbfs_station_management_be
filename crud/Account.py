@@ -6,11 +6,14 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 class Account:
 
     def authenticate(self, client, username, password):
         user_collection = client['user']
-        user = user_collection.find({"username" : username})
+        logger.info(user_collection)
+        user = user_collection.find({"username": username})
+        logger.info(user)
         for record in user:
             hashed_password = hashlib.sha256(password.encode('utf-8')).hexdigest()
             if hashed_password == record['password']:
