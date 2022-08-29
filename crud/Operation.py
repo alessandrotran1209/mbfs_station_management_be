@@ -16,9 +16,9 @@ class Operation():
         list_operations_detail = []
         index = 1
         for operation in records:
-            operation["start_date"] = operation["start_date"].strftime("%d/%m/%Y")
+            operation["start_date"] = operation["start_date"].strftime("%d/%m/%Y %H:%M:%S")
             if "end_date" in operation:
-                operation["end_date"] = operation["end_date"].strftime("%d/%m/%Y")
+                operation["end_date"] = operation["end_date"].strftime("%d/%m/%Y %H:%M:%S")
             operation['index'] = index + (page - 1) * 10
             list_operations_detail.append(operation)
             index += 1
@@ -31,10 +31,8 @@ class Operation():
 
             operation_collection = client['operation']
             station_code = operation["station_code"]
-            (day, month, year) = operation["date"].split('/')
-            operation_date = datetime(int(year), int(month), int(day), 0, 0)
+            operation_date = datetime.fromisoformat(operation["date"])
             word_code = str(operation["work_code"])
-            print(station_code, operation_date, word_code)
             query = {"operator": operator, "station_code": station_code, "start_date": operation_date,
                      "work_code": word_code, "status": 0}
             new_values = {"$set": {"status": 1, "end_date": datetime.today()}}
@@ -98,7 +96,6 @@ class Operation():
             old_operation_date = datetime.strptime(operation["old_date"], '%d/%m/%Y')
             word_code = str(operation["work_code"])
             old_work_code = str(operation["old_work_code"])
-            print(station_code, operation_date, word_code)
             query = {"operator": operator, "station_code": old_station_code, "date": old_operation_date,
                      "work_code": old_work_code}
             new_values = {"$set": {"station_code": station_code, "date": operation_date,
@@ -117,8 +114,7 @@ class Operation():
 
             operation_collection = client['operation']
             station_code = operation["station_code"]
-            (day, month, year) = operation["date"].split('/')
-            date = datetime(int(year), int(month), int(day), 0, 0)
+            date = datetime.fromisoformat(operation["date"])
             work_code = operation["work_code"]
             status = 0
             note = operation["note"]
@@ -143,9 +139,9 @@ class Operation():
         list_operations_detail = []
         index = 1
         for operation in records:
-            operation["start_date"] = operation["start_date"].strftime("%d/%m/%Y")
+            operation["start_date"] = operation["start_date"].strftime("%d/%m/%Y %H:%M:%S")
             if "end_date" in operation:
-                operation["end_date"] = operation["end_date"].strftime("%d/%m/%Y")
+                operation["end_date"] = operation["end_date"].strftime("%d/%m/%Y %H:%M:%S")
             operation['index'] = index + (page - 1) * 10
             list_operations_detail.append(operation)
             index += 1
