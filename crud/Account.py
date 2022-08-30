@@ -14,9 +14,7 @@ class Account:
         client = mongo_conn.conn()
         logger.info('Connection initiated')
         user_collection = client['user']
-        logger.info(user_collection)
         user = user_collection.find({"username": username})
-        logger.info(user)
         for record in user:
             hashed_password = hashlib.sha256(password.encode('utf-8')).hexdigest()
             if hashed_password == record['password']:
@@ -69,3 +67,23 @@ class Account:
             "total_station": total_station
         }
         return result
+
+    def get_role(self, username):
+        if username == 'admin':
+            return 'admin'
+        mongo_conn = MongoConn()
+        client = mongo_conn.conn()
+
+        group_leader_collection = client['group-leader']
+        records = group_leader_collection.find_one({"username": username}, {"_id": 0})
+        if records != None:
+            return "group leader"
+        return 'operator'
+
+    def get_username_by_fullname(self, fullname):
+        mongo_conn = MongoConn()
+        client = mongo_conn.conn()
+        user_collection = client['user']
+        record = user_collection.find_one({"fullname": fullname}, {"username": 1})
+        username = record["username"]
+        return username

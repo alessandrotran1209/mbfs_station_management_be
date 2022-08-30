@@ -55,7 +55,7 @@ names = ['Bùi Văn Dũng', 'Trần Ngọc Trung', 'Lê Trọng Hào', 'Đỗ V�
          'Phạm Xuân Lộc', 'Nguyễn Viết Đoàn', 'Trịnh Công Sơn', 'Nguyễn Văn Hùng', 'Lê Khắc Thế', 'Vũ Văn Huyên',
          'Lương Viết Tiến', 'Đặng Văn Hiệu', 'Vũ Mạnh Thảo', 'Lê Cảnh Tài', 'Nguyễn Đình Trường',
          'Bùi Thành Chung']
-print(names)
+
 usernames = []
 for name in names:
     try:
@@ -63,7 +63,6 @@ for name in names:
         username = convert(name_break_down[-1])
         for i in range(0, len(name_break_down) - 1):
             username += convert(name_break_down[i][0])
-        print(name +"-"+ convert(username))
         usernames.append(username.lower())
     except:
         raise Exception(name)
@@ -83,4 +82,4 @@ results = ['thatnv', 'haolt', 'phuongdx', 'hainb', 'diepnt', 'thinhtq', 'thangtv
            'hungvv', 'hạnhth', 'thangcm', 'hieult', 'sontc', 'dungtv', 'sonlb', 'tuanna', 'haitt', 'hapd', 'dientv',
            'thucln', 'thanhtv', 'hiepnh', 'chungtt', 'sinhvq', 'quyenvv', 'hungnm', 'haipd', 'tainh', 'thongvv',
            'trungtn', 'nhutv', 'hungnv']
-# print(len(results))
+

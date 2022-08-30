@@ -39,7 +39,7 @@ async def get_current_user(token: str = Depends(reuseable_oauth)) -> SystemUser:
         )
     account = Account()
     user: Union[dict[str, Any], None] = account.get_user(token_data.sub)
-
+    user["role"] = token_data.role
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

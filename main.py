@@ -117,8 +117,14 @@ async def list_stations_code(request: Request):
         return re.unauthorized_response()
     user = await get_current_user(access_token)
     operator_name = user.username
+    role = user.role
     station = Station()
-    list_stations_code = station.list_operator_station(operator_name)
+    list_stations_code = []
+    if role == 'operator':
+        list_stations_code = station.list_operator_station(operator_name)
+    elif role == 'group leader':
+        list_stations_code = station.list_group_station(operator_name)
+        logger.info(list_stations_code)
     return re.success_response(list_stations_code)
 
 
@@ -137,9 +143,14 @@ async def list_operations(p: int, request: Request):
     operation = Operation()
     user = await get_current_user(access_token)
     operator_name = user.username
-    if operator_name != 'admin':
+    role = user.role
+    list_operations = []
+    total = 0
+    if role == 'operator':
         list_operations, total = operation.get_operations(operator_name=operator_name, page=p)
-    else:
+    elif role == 'group leader':
+        list_operations, total = operation.get_group_operations(operator_name=operator_name, page=p)
+    elif role == 'admin':
         list_operations, total = operation.get_all_operations(page=p)
     return re.success_response(list_operations, total)
 
@@ -157,7 +168,6 @@ async def complete_operation(operation_data: OperationModel, request: Request):
         if result:
             return re.success_response()
     except Exception as e:
-        print(e)
         return re.error_catching(e)
 
 
@@ -199,18 +209,24 @@ async def insert_operation(operation_data: OperationModel, request: Request):
         return re.unauthorized_response()
     user = await get_current_user(access_token)
     operator_name = user.username
+    role = user.role
     station = Station()
     station_lat, station_lng = station.get_station_coord(operation_data.station_code)
     user_lat = operation_data.lat
     user_lng = operation_data.lng
 
     distance = geodesic((station_lat, station_lng), (user_lat,user_lng )).kilometers
-    print(distance)
     try:
-        operation = Operation()
-        result = operation.insert_operation(operation_data.dict(), operator_name)
-        if result:
-            return re.success_response()
+        if role == 'operator':
+            operation = Operation()
+            result = operation.insert_operation(operation_data.dict(), operator_name)
+            if result:
+                return re.success_response()
+        elif role == 'group leader':
+            operation = Operation()
+            result = operation.insert_operation_by_group_leader(operation_data.dict(), operator_name)
+            if result:
+                return re.success_response()
     except Exception as e:
         return re.error_catching(e)
 
@@ -220,6 +236,7 @@ async def create_user(data: UserAuth):
     user = {
         'username': data.username,
         'password': get_hashed_password(data.password),
+        'fullname': data.fullname
     }
     # saving user to database
 
@@ -251,7 +268,8 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Incorrect email or password"
         )
-    role = 'admin' if form_data.username == 'admin' else 'operator'
+    role = account.get_role(form_data.username)
+    logger.info(role)
     return {
         "access_token": create_access_token(user['username'], role=role),
         "refresh_token": create_refresh_token(user['username'], role=role),
@@ -261,13 +279,16 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 @app.get('/me', summary='Get details of currently logged in user', response_model=UserOut)
 async def get_me(user: SystemUser = Depends(get_current_user)):
     return user
-# mongoConn = MongoConn()
-# account = Account()
-# station = Station()
-#
-# username = 'thangtv'
-# password = 'Mobi$12345'
-#
-# client = mongoConn.conn()
-# # account.authenticate(client, username, password)
-# print(station.list_stations(client))
+
+
+@app.get('/operator')
+async def get_in_charge_operator(request: Request):
+    access_token = request.headers.get('Authorization').split()[-1]
+    if access_token == 'null':
+        return re.unauthorized_response()
+    user = await get_current_user(access_token)
+    current_username = user.username
+    station = Station()
+    list_operators = station.get_operators_by_group_leader(current_username)
+    return re.success_response(data=list_operators)
+
