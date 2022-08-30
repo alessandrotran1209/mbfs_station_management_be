@@ -1,5 +1,6 @@
 from crud.Account import Account
 from db.MongoConn import MongoConn
+import utils.mock as mock
 import logging
 
 logger = logging.getLogger(__name__)
@@ -104,23 +105,14 @@ class Station:
         group_leader_collection = client['group-leader']
         record = group_leader_collection.find_one({'username': username}, {"_id": 0, "group": 1})
         group_name = record["group"]
-        logger.info(group_name)
         station_collection = client['station']
-        records = station_collection.find({"group": group_name}, {"_id": 0, "operator": 1})
-
-        set_operator = set()
-        account = Account()
+        records = station_collection.distinct("operator", {"group": group_name})
         list_operators = []
         for record in records:
-            if len(record) == 0: continue
-            fullname = record["operator"]
-            if fullname in set_operator:
-                continue
-            set_operator.add(fullname)
-            operator_username = account.get_username_by_fullname(fullname)
+            operator_username = mock.get_username(record)
             data = {
                 "username": operator_username,
-                "fullname": fullname
+                "fullname": record
             }
             list_operators.append(data)
 
