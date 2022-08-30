@@ -1,6 +1,8 @@
 from crud.Account import Account
 from db.MongoConn import MongoConn
+import logging
 
+logger = logging.getLogger(__name__)
 
 class Station:
     def list_stations(self, page=1):
@@ -102,7 +104,7 @@ class Station:
         group_leader_collection = client['group-leader']
         record = group_leader_collection.find_one({'username': username}, {"_id": 0, "group": 1})
         group_name = record["group"]
-
+        logger.info(group_name)
         station_collection = client['station']
         records = station_collection.find({"group": group_name}, {"_id": 0, "operator": 1})
 

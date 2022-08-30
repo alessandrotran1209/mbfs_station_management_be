@@ -254,7 +254,6 @@ async def create_user(data: UserAuth):
 
 @app.post('/login', summary="Create access and refresh tokens for user", response_model=TokenSchema)
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    logger.info(f'Logging in with: {form_data.username}/{form_data.password}')
     account = Account()
     user = account.get_user(form_data.username)
     if user is None:

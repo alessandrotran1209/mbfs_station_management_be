@@ -1,8 +1,11 @@
+import logging
+
 from crud.Station import Station
 from db.MongoConn import MongoConn
 from datetime import datetime, timedelta
 from pymongo.collation import Collation
 
+logger = logging.getLogger(__name__)
 
 class Operation():
     def get_operations(self, operator_name, page=1):
