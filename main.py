@@ -179,10 +179,19 @@ async def search_operations(stationCode: str = '', startDate: str = '', endDate:
         return re.unauthorized_response()
     user = await get_current_user(access_token)
     operator_name = user.username
+    role = user.role
     operation = Operation()
-    list_operations, total = operation.search_operation(operator_name=operator_name, station_code=stationCode,
+    list_operations = []
+    total = 0
+    if role == 'operator':
+        list_operations, total = operation.search_operation(operator_name=operator_name, station_code=stationCode,
                                                         start_date=startDate,
                                                         end_date=endDate, status=status, page=p)
+    elif role == 'group leader':
+        list_operations, total = operation.search_group_operation(operator_name=operator_name, station_code=stationCode,
+                                                            start_date=startDate,
+                                                            end_date=endDate, status=status, page=p)
+
     return re.success_response(list_operations, total)
 
 
