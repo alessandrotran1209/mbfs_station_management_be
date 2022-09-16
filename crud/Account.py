@@ -43,14 +43,9 @@ class Account:
             raise Exception(e)
         return True
 
-    def get_statistics(self, operator):
+    def get_statistics(self, operator, fullname):
         mongo_conn = MongoConn()
         client = mongo_conn.conn()
-        user_collection = client['user']
-        fullname = ''
-        records = user_collection.find({"username": operator}, {})
-        for record in records:
-            fullname = record['fullname']
 
         operation_collection = client['operation']
         total_operation = operation_collection.count_documents({"operator": operator})

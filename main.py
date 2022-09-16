@@ -75,8 +75,9 @@ async def list_stations(request: Request = None):
         return re.unauthorized_response()
     user = await get_current_user(access_token)
     operator_name = user.username
+    operator_fullname = user.fullname
     account = Account()
-    result = account.get_statistics(operator_name)
+    result = account.get_statistics(operator_name, operator_fullname)
     return re.success_response(data=result)
 
 @app.get("/station")
@@ -117,13 +118,14 @@ async def list_stations_code(request: Request):
         return re.unauthorized_response()
     user = await get_current_user(access_token)
     operator_name = user.username
+    operator_fullname = user.fullname
     role = user.role
     station = Station()
     list_stations_code = []
     if role == 'operator':
-        list_stations_code = station.list_operator_station(operator_name)
+        list_stations_code = station.list_operator_station(operator_fullname)
     elif role == 'group leader':
-        list_stations_code = station.list_group_station(operator_name)
+        list_stations_code = station.list_group_station(operator_fullname)
         logger.info(list_stations_code)
     return re.success_response(list_stations_code)
 
