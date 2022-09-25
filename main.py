@@ -76,8 +76,9 @@ async def list_stations(request: Request = None):
     user = await get_current_user(access_token)
     operator_name = user.username
     operator_fullname = user.fullname
+    role = user.role
     account = Account()
-    result = account.get_statistics(operator_name, operator_fullname)
+    result = account.get_statistics(operator_name, operator_fullname, role)
     return re.success_response(data=result)
 
 @app.get("/station")
@@ -85,8 +86,11 @@ async def list_stations(p: int = 1, request: Request = None):
     access_token = request.headers.get('Authorization').split()[-1]
     if access_token == 'null':
         return re.unauthorized_response()
+    user = await get_current_user(access_token)
+    role = user.role
+    operator_fullname = user.fullname
     station = Station()
-    list_stations, total = station.list_stations(page=p)
+    list_stations, total = station.list_stations(role=role, fullname=operator_fullname, page=p)
     return re.success_response(list_stations, total)
 
 
@@ -96,8 +100,10 @@ async def list_operator_station_code(request: Request = None):
     if access_token == 'null':
         return re.unauthorized_response()
     user = await get_current_user(access_token)
+    fullname = user.fullname
+    role = user.role
     station = Station()
-    list_stations_code = station.list_station_code()
+    list_stations_code = station.list_station_code(role=role, fullname=fullname)
     return re.success_response(list_stations_code)
 
 
@@ -117,7 +123,6 @@ async def list_stations_code(request: Request):
     if access_token == 'null':
         return re.unauthorized_response()
     user = await get_current_user(access_token)
-    operator_name = user.username
     operator_fullname = user.fullname
     role = user.role
     station = Station()
@@ -131,9 +136,15 @@ async def list_stations_code(request: Request):
 
 
 @app.get("/station/q")
-async def search_stations(code: str = '', province: str = '', district: str = '', p: int = 1):
+async def search_stations(code: str = '', province: str = '', district: str = '', p: int = 1, request: Request = None):
+    access_token = request.headers.get('Authorization').split()[-1]
+    if access_token == 'null':
+        return re.unauthorized_response()
+    user = await get_current_user(access_token)
+    operator_fullname = user.fullname
+    role = user.role
     station = Station()
-    list_stations, total = station.search_station(code=code, province=province, district=district, page=p)
+    list_stations, total = station.search_station(code=code, province=province, district=district, page=p, fullname=operator_fullname, role=role)
     return re.success_response(list_stations, total)
 
 
@@ -210,7 +221,7 @@ async def update_operation(operation_data: OperationModel, request: Request = No
         if result:
             return re.success_response()
     except Exception as e:
-        return re.error_catching(e)
+        return re.error_catching(str(e))
 
 
 @app.put("/operation")
@@ -221,12 +232,12 @@ async def insert_operation(operation_data: OperationModel, request: Request):
     user = await get_current_user(access_token)
     operator_name = user.username
     role = user.role
-    station = Station()
-    station_lat, station_lng = station.get_station_coord(operation_data.station_code)
-    user_lat = operation_data.lat
-    user_lng = operation_data.lng
+    # station = Station()
+    # station_lat, station_lng = station.get_station_coord(operation_data.station_code)
+    # user_lat = operation_data.lat
+    # user_lng = operation_data.lng
 
-    distance = geodesic((station_lat, station_lng), (user_lat,user_lng )).kilometers
+    # distance = geodesic((station_lat, station_lng), (user_lat,user_lng )).kilometers
     try:
         if role == 'operator':
             operation = Operation()
@@ -239,7 +250,8 @@ async def insert_operation(operation_data: OperationModel, request: Request):
             if result:
                 return re.success_response()
     except Exception as e:
-        return re.error_catching(e)
+        print(e)
+        return re.error_catching(str(e))
 
 
 @app.post('/signup', summary="Create new user")
@@ -301,4 +313,11 @@ async def get_in_charge_operator(request: Request):
     station = Station()
     list_operators = station.get_operators_by_group_leader(current_username)
     return re.success_response(data=list_operators)
+
+
+@app.get("/daily-statistics")
+async def get_daily_stats():
+    operation = Operation()
+    data, total = operation.get_group_progress()
+    return re.success_response(data = data, total=total)
 

@@ -1,14 +1,14 @@
 from pydantic import BaseModel
-
+from typing import Union
 
 class OperationModel(BaseModel):
-    operator: str
-    station_code: str
-    date: str
-    work_code: str
-    old_station_code: str
-    old_date: str
-    old_work_code: str
-    note: str
-    lat: str
-    lng: str
+    operator: Union[str, None]
+    station_code: Union[str, None]
+    date: Union[str, None]
+    work_code: Union[str, None]
+    old_station_code: Union[str, None]
+    old_date: Union[str, None]
+    old_work_code: Union[str, None]
+    note: Union[str, None]
+    lat: Union[str, None]
+    lng: Union[str, None]

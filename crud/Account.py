@@ -43,17 +43,23 @@ class Account:
             raise Exception(e)
         return True
 
-    def get_statistics(self, operator, fullname):
+    def get_statistics(self, operator, fullname, role):
         mongo_conn = MongoConn()
         client = mongo_conn.conn()
 
         operation_collection = client['operation']
-        total_operation = operation_collection.count_documents({"operator": operator})
-        total_completed_operation = operation_collection.count_documents({"operator": operator, 'status': 1})
-        total_uncompleted_operation = operation_collection.count_documents({"operator": operator, 'status': 0})
-
         station_collection = client['station']
-        total_station = station_collection.count_documents({"operator": fullname})
+
+        if role == 'operator':
+            total_operation = operation_collection.count_documents({"operator": operator})
+            total_completed_operation = operation_collection.count_documents({"operator": operator, 'status': "1"})
+            total_uncompleted_operation = operation_collection.count_documents({"operator": operator, 'status': "0"})
+            total_station = station_collection.count_documents({"operator": fullname})
+        elif role == 'group leader':
+            total_operation = operation_collection.count_documents({"assigner": operator})
+            total_completed_operation = operation_collection.count_documents({"assigner": operator, 'status': "1"})
+            total_uncompleted_operation = operation_collection.count_documents({"assigner": operator, 'status': "0"})
+            total_station = station_collection.count_documents({"group_leader": fullname})
 
         result = {
             "total_operation": total_operation,

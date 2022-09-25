@@ -6,13 +6,14 @@ import logging
 logger = logging.getLogger(__name__)
 
 class Station:
-    def list_stations(self, page=1):
+    def list_stations(self, role='', fullname='', page=1):
         mongo_conn = MongoConn()
         client = mongo_conn.conn()
 
         station_collection = client['station']
-        total = station_collection.count_documents({})
-        records = station_collection.find({}, {"_id": 0}).skip((page - 1) * 10).limit(10)
+        query = {"operator": fullname} if role != 'group leader' else {"group_leader": fullname}
+        total = station_collection.count_documents(query)
+        records = station_collection.find(query, {"_id": 0}).skip((page - 1) * 10).limit(10)
 
         list_station_detail = []
         index = 1
@@ -22,28 +23,30 @@ class Station:
             index += 1
         return list_station_detail, total
 
-    def list_station_code(self):
+    def list_station_code(self, role, fullname):
         mongo_conn = MongoConn()
         client = mongo_conn.conn()
 
         station_collection = client['station']
-        records = station_collection.find({}, {"_id": 0, "station_code": 1, "province": 1})
+        query = {"operator": fullname} if role != 'group leader' else {"group_leader": fullname}
+        records = station_collection.find(query, {"_id": 0, "district": 1})
         list_station_code = []
         for station in records:
-            list_station_code.append(station)
+            list_station_code.append(station["district"])
+        return list(set(list_station_code))
 
-        return list_station_code
-
-    def search_station(self, code='', province='', district='', page=1):
+    def search_station(self, code='', province='', district='', page=1, fullname='', role=''):
         mongo_conn = MongoConn()
         client = mongo_conn.conn()
 
         station_collection = client['station']
-
-        total = station_collection.count_documents(
-            {"station_code": {'$regex': code}, "province": {'$regex': province}, "district": {'$regex': district}})
+        if role == 'operator':
+            query = {"operator": fullname, "station_code": {'$regex': code}, "province": province, "district": {'$regex': district}}
+        else:
+            query = {"group_leader": fullname, "station_code": {'$regex': code}, "province": province, "district": {'$regex': district}}
+        total = station_collection.count_documents(query)
         records = station_collection.find(
-            {"station_code": {'$regex': code}, "province": {'$regex': province}, "district": {'$regex': district}},
+            query,
             {"_id": 0}).skip((page - 1) * 10).limit(10)
         list_station_code = []
 
@@ -72,7 +75,10 @@ class Station:
         client = mongo_conn.conn()
 
         station_collection = client['station']
-        records = station_collection.find({"group_leader": leader_fullname}, {"_id": 0, "station_code": 1})
+        if leader_fullname == 'Cà Mau':
+            records = station_collection.find({"group": leader_fullname}, {"_id": 0, "station_code": 1})
+        else:
+            records = station_collection.find({"group_leader": leader_fullname}, {"_id": 0, "station_code": 1})
         list_station_code = []
         for station in records:
             list_station_code.append(station)

@@ -1,5 +1,6 @@
 import logging
-
+from tokenize import group
+import dateutil.parser
 from crud.Station import Station
 from db.MongoConn import MongoConn
 from datetime import datetime, timedelta
@@ -37,7 +38,7 @@ class Operation():
         group_name = record["group"]
 
         operation_collection = client['operation']
-        total = operation_collection.count_documents({"group": group_name})
+        total = operation_collection.count_documents({"assigner": operator_name})
         records = operation_collection.find({"group": group_name}, {"_id": 0}).skip((page - 1) * 10).limit(
             10).sort([("status", 1), ("start_date", -1)]).collation(Collation(locale="en_US", numericOrdering=True))
 
@@ -56,14 +57,13 @@ class Operation():
         try:
             mongo_conn = MongoConn()
             client = mongo_conn.conn()
-
             operation_collection = client['operation']
             station_code = operation["station_code"]
-            operation_date = datetime.fromisoformat(operation["date"])
+            operation_date = dateutil.parser.isoparse(operation["date"])
             word_code = str(operation["work_code"])
-            query = {"operator": operator, "station_code": station_code, "start_date": operation_date,
-                     "work_code": word_code, "status": 0}
-            new_values = {"$set": {"status": 1, "end_date": datetime.today()}}
+            query = {"operator": operation["operator"], "station_code": station_code, "start_date": operation_date,
+                     "work_code": word_code, "status": "0"}
+            new_values = {"$set": {"status": "1", "end_date": datetime.today()}}
 
             operation_collection.update_one(query, new_values)
         except Exception as e:
@@ -94,11 +94,11 @@ class Operation():
             total = operation_collection.count_documents(
                 {"operator": operator_name, "station_code": {'$regex': station_code},
                  "start_date": {'$lt': end_date, '$gte': start_date},
-                 "status": int(status)})
+                 "status": str(status)})
             records = operation_collection.find(
                 {"operator": operator_name, "station_code": {'$regex': station_code},
                  "start_date": {'$gte': start_date, '$lt': end_date},
-                 "status": int(status)},
+                 "status": str(status)},
                 {"_id": 0}).skip((page - 1) * 10).limit(10).sort([("status", 1)]).collation(
                 Collation(locale="en_US", numericOrdering=True))
         list_operations = []
@@ -106,8 +106,8 @@ class Operation():
         index = 1
         for operation in records:
             operation['index'] = index + (page - 1) * 10
-            operation['start_date'] = operation['start_date'].strftime("%d/%m/%Y")
-            operation['end_date'] = operation['end_date'].strftime("%d/%m/%Y") if 'end_date' in operation else ''
+            operation['start_date'] = operation['start_date'].strftime("%d/%m/%Y %H:%M:%S")
+            operation['end_date'] = operation['end_date'].strftime("%d/%m/%Y %H:%M:%S") if 'end_date' in operation else ''
             list_operations.append(operation)
             index += 1
         return list_operations, total
@@ -116,10 +116,6 @@ class Operation():
     def search_group_operation(self, operator_name='', station_code='', start_date='', end_date='', status='', page=1):
         mongo_conn = MongoConn()
         client = mongo_conn.conn()
-
-        group_leader_collection = client['group-leader']
-        record = group_leader_collection.find_one({"username": operator_name})
-        group_name = record['group']
 
         end_date = datetime.today() + timedelta(days=1) if end_date == '' else datetime.strptime(end_date,
                                                                                                  '%d/%m/%Y') + timedelta(
@@ -130,23 +126,23 @@ class Operation():
 
         if status == '':
             total = operation_collection.count_documents(
-                {"group": group_name, "station_code": {'$regex': station_code},
+                {"assigner": operator_name, "station_code": {'$regex': station_code},
                  "start_date": {'$gte': start_date, '$lt': end_date}
                  })
             records = operation_collection.find(
-                {"group": group_name, "station_code": {'$regex': station_code},
+                {"assigner": operator_name, "station_code": {'$regex': station_code},
                  "start_date": {'$gte': start_date, '$lt': end_date}},
                 {"_id": 0}).skip((page - 1) * 10).limit(10).sort([("status", 1), ("start_date", -1)]).collation(
                 Collation(locale="en_US", numericOrdering=True))
         else:
             total = operation_collection.count_documents(
-                {"group": group_name, "station_code": {'$regex': station_code},
+                {"assigner": operator_name, "station_code": {'$regex': station_code},
                  "start_date": {'$lt': end_date, '$gte': start_date},
-                 "status": int(status)})
+                 "status": str(status)})
             records = operation_collection.find(
-                {"group": group_name, "station_code": {'$regex': station_code},
+                {"assigner": operator_name, "station_code": {'$regex': station_code},
                  "start_date": {'$gte': start_date, '$lt': end_date},
-                 "status": int(status)},
+                 "status": str(status)},
                 {"_id": 0}).skip((page - 1) * 10).limit(10).sort([("status", 1)]).collation(
                 Collation(locale="en_US", numericOrdering=True))
         list_operations = []
@@ -154,8 +150,8 @@ class Operation():
         index = 1
         for operation in records:
             operation['index'] = index + (page - 1) * 10
-            operation['start_date'] = operation['start_date'].strftime("%d/%m/%Y")
-            operation['end_date'] = operation['end_date'].strftime("%d/%m/%Y") if 'end_date' in operation else ''
+            operation['start_date'] = operation['start_date'].strftime("%d/%m/%Y %H:%M:%S")
+            operation['end_date'] = operation['end_date'].strftime("%d/%m/%Y %H:%M:%S") if 'end_date' in operation else ''
             list_operations.append(operation)
             index += 1
         return list_operations, total
@@ -172,10 +168,11 @@ class Operation():
             old_operation_date = datetime.strptime(operation["old_date"], '%d/%m/%Y')
             word_code = str(operation["work_code"])
             old_work_code = str(operation["old_work_code"])
-            query = {"operator": operator, "station_code": old_station_code, "date": old_operation_date,
+            note = operation["note"]
+            query = {"operator": operation["operator"], "station_code": old_station_code, "date": old_operation_date,
                      "work_code": old_work_code}
             new_values = {"$set": {"station_code": station_code, "date": operation_date,
-                                   "work_code": word_code}}
+                                   "work_code": word_code, "note": note}}
 
             operation_collection.update_one(query, new_values)
         except Exception as e:
@@ -189,9 +186,9 @@ class Operation():
             station = Station()
             operation_collection = client['operation']
             station_code = operation["station_code"]
-            date = datetime.fromisoformat(operation["date"])
+            date = dateutil.parser.isoparse(operation["date"])
             work_code = operation["work_code"]
-            status = 0
+            status = "0"
             note = operation["note"]
             group_name = station.get_user_group(operator)
 
@@ -213,12 +210,12 @@ class Operation():
             operation_collection = client['operation']
             operator = operation['operator']
             station_code = operation["station_code"]
-            date = datetime.fromisoformat(operation["date"])
+            date = dateutil.parser.isoparse(operation["date"])
             work_code = operation["work_code"]
-            status = 0
+            status = "0"
             note = operation["note"]
-            group_name = station.get_user_group(operator)
 
+            group_name = station.get_user_group(operator)
             operation_data = {"assigner": assigner, "operator": operator, "group": group_name,
                               "station_code": station_code,
                               "start_date": date,
@@ -248,3 +245,22 @@ class Operation():
             list_operations_detail.append(operation)
             index += 1
         return list_operations_detail, total
+
+    def get_group_progress(self):
+        mongo_conn = MongoConn()
+        client = mongo_conn.conn()
+
+        operation_collection = client['operation']
+
+        pipeline = [
+            {"$group" : {"_id":"$group", "count":{"$sum":1}}}
+        ]
+        result = operation_collection.aggregate(pipeline)
+        total = operation_collection.count_documents({})
+        ret = []
+        for group_count in result:
+            ret.append({
+                "Tổ": group_count["_id"],
+                "Số bản ghi": group_count["count"]
+            })
+        return ret, total
