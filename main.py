@@ -321,3 +321,15 @@ async def get_daily_stats():
     data, total = operation.get_group_progress()
     return re.success_response(data = data, total=total)
 
+@app.get("/statistics/top")
+async def get_daily_stats(request: Request):
+    access_token = request.headers.get('Authorization').split()[-1]
+    if access_token == 'null':
+        return re.unauthorized_response()
+    user = await get_current_user(access_token)
+    username = user.username
+    role = user.role
+    account = Account()
+    top_operations = account.get_top_work(username, role)
+    return re.success_response(data = top_operations)
+

@@ -88,3 +88,22 @@ class Account:
         record = user_collection.find_one({"fullname": fullname}, {"username": 1})
         username = record["username"]
         return username
+
+    def get_top_work(self, username, role):
+        mongo_conn = MongoConn()
+        client = mongo_conn.conn()
+
+        operation_collection = client['operation']
+
+        agg = [
+            {"$match": {"operator":username} },
+            {"$group" : {"_id" : "$work_code", "count" : {"$sum" : 1}}},
+            {"$sort" : {"count" : -1}},
+            {"$limit" : 3}
+        ]
+
+        records = operation_collection.aggregate(agg)
+        ret = []
+        for record in records:
+            ret.append({"work_code": record["_id"], "count": record["count"]})
+        return ret
