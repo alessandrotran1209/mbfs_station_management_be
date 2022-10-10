@@ -1,6 +1,7 @@
 import string
 import time
 import random
+from tkinter.tix import STATUS
 
 from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.security import OAuth2PasswordRequestForm
@@ -10,6 +11,7 @@ from crud.Operation import Operation
 from crud.Station import Station
 from db.MongoConn import MongoConn
 from crud.Account import Account
+from models.ChangePasswordForm import ChangePasswordForm
 import utils.Response as re
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -185,7 +187,7 @@ async def complete_operation(operation_data: OperationModel, request: Request):
 
 
 @app.get("/operation/q")
-async def search_operations(stationCode: str = '', startDate: str = '', endDate: str = '', status: str = '',
+async def search_operations(stationCode: str = '', startDate: str = '', endDate: str = '', workCode: str='', status: str = '',
                             p: int = 1, request: Request = None):
     access_token = request.headers.get('Authorization').split()[-1]
     if access_token == 'null':
@@ -199,11 +201,11 @@ async def search_operations(stationCode: str = '', startDate: str = '', endDate:
     if role == 'operator':
         list_operations, total = operation.search_operation(operator_name=operator_name, station_code=stationCode,
                                                         start_date=startDate,
-                                                        end_date=endDate, status=status, page=p)
+                                                        end_date=endDate, work_code=workCode, status=status, page=p)
     elif role == 'group leader':
         list_operations, total = operation.search_group_operation(operator_name=operator_name, station_code=stationCode,
                                                             start_date=startDate,
-                                                            end_date=endDate, status=status, page=p)
+                                                            end_date=endDate, work_code=workCode, status=status, page=p)
 
     return re.success_response(list_operations, total)
 
@@ -333,3 +335,50 @@ async def get_daily_stats(request: Request):
     top_operations = account.get_top_work(username, role)
     return re.success_response(data = top_operations)
 
+@app.get("/operation/search_all/q")
+async def get_all_operations_on_search(stationCode: str = '', startDate: str = '', endDate: str = '', workCode:str = '', status: str = ''
+                            , request: Request = None):
+    access_token = request.headers.get('Authorization').split()[-1]
+    if access_token == 'null':
+        return re.unauthorized_response()
+    user = await get_current_user(access_token)
+    operator_name = user.username
+    role = user.role
+    operator_fullname = user.fullname
+    operation = Operation()
+    list_operations = []
+    if role == 'operator':
+        list_operations = operation.search_all_operation(fullname=operator_fullname, operator_name=operator_name, station_code=stationCode,
+                                                        start_date=startDate,
+                                                        end_date=endDate, work_code=workCode, status=status)
+    elif role == 'group leader':
+        list_operations = operation.search_all_group_operation(operator_name=operator_name, station_code=stationCode,
+                                                            start_date=startDate,
+                                                            end_date=endDate, status=status)
+
+    return re.success_response(list_operations)
+
+
+@app.post("/change-pw")
+async def change_password(request: Request, change_password_form: ChangePasswordForm):
+    access_token = request.headers.get('Authorization').split()[-1]
+    if access_token == 'null':
+        return re.unauthorized_response()
+    user = await get_current_user(access_token)
+    print(user)
+    hashed_pass = user.password
+    account = Account()
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Incorrect password"
+        )
+    if not verify_password(change_password_form.password, hashed_pass):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Incorrect password"
+        )
+    result = account.change_password(user.username, get_hashed_password(change_password_form.newPassword))
+    if result:
+        return re.success_response()
+    return re.error_response()

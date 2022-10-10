@@ -94,16 +94,33 @@ class Account:
         client = mongo_conn.conn()
 
         operation_collection = client['operation']
-
-        agg = [
-            {"$match": {"operator":username} },
-            {"$group" : {"_id" : "$work_code", "count" : {"$sum" : 1}}},
-            {"$sort" : {"count" : -1}},
-            {"$limit" : 3}
-        ]
+        if role == 'operator':
+            agg = [
+                {"$match": {"operator":username} },
+                {"$group" : {"_id" : "$work_code", "count" : {"$sum" : 1}}},
+                {"$sort" : {"count" : -1}},
+                {"$limit" : 3}
+            ]
+        elif role == 'group leader':
+            agg = [
+                {"$match": {"assigner":username} },
+                {"$group" : {"_id" : "$work_code", "count" : {"$sum" : 1}}},
+                {"$sort" : {"count" : -1}},
+                {"$limit" : 3}
+            ]
 
         records = operation_collection.aggregate(agg)
         ret = []
         for record in records:
             ret.append({"work_code": record["_id"], "count": record["count"]})
         return ret
+
+    def change_password(self, username, password):
+        try:
+            mongo_conn = MongoConn()
+            client = mongo_conn.conn()
+            user_collection = client['user']
+            result = user_collection.update_one({"username": username}, { "$set": { 'password': password } })
+            return result.matched_count > 0 
+        except:
+            return False

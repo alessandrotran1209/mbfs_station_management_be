@@ -70,7 +70,7 @@ class Operation():
             raise Exception(e)
         return True
 
-    def search_operation(self, operator_name='', station_code='', start_date='', end_date='', status='', page=1):
+    def search_operation(self, operator_name='', station_code='', start_date='', end_date='', work_code='', status='', page=1):
         mongo_conn = MongoConn()
         client = mongo_conn.conn()
         end_date = datetime.today() + timedelta(days=1) if end_date == '' else datetime.strptime(end_date,
@@ -83,21 +83,21 @@ class Operation():
         if status == '':
             total = operation_collection.count_documents(
                 {"operator": operator_name, "station_code": {'$regex': station_code},
-                 "start_date": {'$gte': start_date, '$lt': end_date}
+                 "start_date": {'$gte': start_date, '$lt': end_date}, "work_code": {'$regex': work_code}
                  })
             records = operation_collection.find(
                 {"operator": operator_name, "station_code": {'$regex': station_code},
-                 "start_date": {'$gte': start_date, '$lt': end_date}},
+                 "start_date": {'$gte': start_date, '$lt': end_date}, "work_code": {'$regex': work_code}},
                 {"_id": 0}).skip((page - 1) * 10).limit(10).sort([("status", 1), ("start_date", -1)]).collation(
                 Collation(locale="en_US", numericOrdering=True))
         else:
             total = operation_collection.count_documents(
                 {"operator": operator_name, "station_code": {'$regex': station_code},
-                 "start_date": {'$lt': end_date, '$gte': start_date},
+                 "start_date": {'$lt': end_date, '$gte': start_date}, "work_code": {'$regex': work_code}, 
                  "status": str(status)})
             records = operation_collection.find(
                 {"operator": operator_name, "station_code": {'$regex': station_code},
-                 "start_date": {'$gte': start_date, '$lt': end_date},
+                 "start_date": {'$gte': start_date, '$lt': end_date}, "work_code": {'$regex': work_code},
                  "status": str(status)},
                 {"_id": 0}).skip((page - 1) * 10).limit(10).sort([("status", 1)]).collation(
                 Collation(locale="en_US", numericOrdering=True))
@@ -113,7 +113,7 @@ class Operation():
         return list_operations, total
 
 
-    def search_group_operation(self, operator_name='', station_code='', start_date='', end_date='', status='', page=1):
+    def search_group_operation(self, operator_name='', station_code='', start_date='', end_date='', work_code='', status='', page=1):
         mongo_conn = MongoConn()
         client = mongo_conn.conn()
 
@@ -127,21 +127,21 @@ class Operation():
         if status == '':
             total = operation_collection.count_documents(
                 {"assigner": operator_name, "station_code": {'$regex': station_code},
-                 "start_date": {'$gte': start_date, '$lt': end_date}
+                 "start_date": {'$gte': start_date, '$lt': end_date}, "work_code": {'$regex': work_code}
                  })
             records = operation_collection.find(
                 {"assigner": operator_name, "station_code": {'$regex': station_code},
-                 "start_date": {'$gte': start_date, '$lt': end_date}},
+                 "start_date": {'$gte': start_date, '$lt': end_date}, "work_code": {'$regex': work_code}},
                 {"_id": 0}).skip((page - 1) * 10).limit(10).sort([("status", 1), ("start_date", -1)]).collation(
                 Collation(locale="en_US", numericOrdering=True))
         else:
             total = operation_collection.count_documents(
                 {"assigner": operator_name, "station_code": {'$regex': station_code},
-                 "start_date": {'$lt': end_date, '$gte': start_date},
+                 "start_date": {'$lt': end_date, '$gte': start_date}, "work_code": {'$regex': work_code},
                  "status": str(status)})
             records = operation_collection.find(
                 {"assigner": operator_name, "station_code": {'$regex': station_code},
-                 "start_date": {'$gte': start_date, '$lt': end_date},
+                 "start_date": {'$gte': start_date, '$lt': end_date}, "work_code": {'$regex': work_code},
                  "status": str(status)},
                 {"_id": 0}).skip((page - 1) * 10).limit(10).sort([("status", 1)]).collation(
                 Collation(locale="en_US", numericOrdering=True))
@@ -264,3 +264,77 @@ class Operation():
                 "Số bản ghi": group_count["count"]
             })
         return ret, total
+
+    def search_all_operation(self, fullname='', operator_name='', station_code='', start_date='', end_date='', work_code='', status=''):
+        mongo_conn = MongoConn()
+        client = mongo_conn.conn()
+        end_date = datetime.today() + timedelta(days=1) if end_date == '' else datetime.strptime(end_date,
+                                                                                                 '%d/%m/%Y') + timedelta(
+            days=1)
+        start_date = datetime(1, 1, 1, 0, 0) if start_date == '' else datetime.strptime(start_date, '%d/%m/%Y')
+
+        operation_collection = client['operation']
+
+        if status == '':
+            records = operation_collection.find(
+                {"operator": operator_name, "station_code": {'$regex': station_code},
+                 "start_date": {'$gte': start_date, '$lt': end_date}, "work_code": {'$regex': work_code}},
+                {"_id": 0}).sort([("status", 1), ("start_date", -1)]).collation(
+                Collation(locale="en_US", numericOrdering=True))
+        else:
+            records = operation_collection.find(
+                {"operator": operator_name, "station_code": {'$regex': station_code},
+                 "start_date": {'$gte': start_date, '$lt': end_date},"work_code": {'$regex': work_code},
+                 "status": str(status)},
+                {"_id": 0}).sort([("status", 1)]).collation(
+                Collation(locale="en_US", numericOrdering=True))
+        list_operations = []
+
+        index = 1
+        for operation in records:
+            operation['index'] = index
+            operation['start_date'] = operation['start_date'].strftime("%d/%m/%Y %H:%M:%S")
+            operation['end_date'] = operation['end_date'].strftime("%d/%m/%Y %H:%M:%S") if 'end_date' in operation else ''
+            operation['operator'] = fullname
+            list_operations.append(operation)
+            index += 1
+        return list_operations
+
+    def search_all_group_operation(self, operator_name='', station_code='', start_date='', end_date='', status=''):
+        mongo_conn = MongoConn()
+        client = mongo_conn.conn()
+
+        end_date = datetime.today() + timedelta(days=1) if end_date == '' else datetime.strptime(end_date,
+                                                                                                 '%d/%m/%Y') + timedelta(
+            days=1)
+        start_date = datetime(1, 1, 1, 0, 0) if start_date == '' else datetime.strptime(start_date, '%d/%m/%Y')
+
+        operation_collection = client['operation']
+
+        if status == '':
+            records = operation_collection.find(
+                {"assigner": operator_name, "station_code": {'$regex': station_code},
+                 "start_date": {'$gte': start_date, '$lt': end_date}},
+                {"_id": 0}).sort([("status", 1), ("start_date", -1)]).collation(
+                Collation(locale="en_US", numericOrdering=True))
+        else:            
+            records = operation_collection.find(
+                {"assigner": operator_name, "station_code": {'$regex': station_code},
+                 "start_date": {'$gte': start_date, '$lt': end_date},
+                 "status": str(status)},
+                {"_id": 0}).sort([("status", 1)]).collation(
+                Collation(locale="en_US", numericOrdering=True))
+        list_operations = []
+
+        index = 1
+        for operation in records:
+            operation['index'] = index
+            operation['start_date'] = operation['start_date'].strftime("%d/%m/%Y %H:%M:%S")
+            operation['end_date'] = operation['end_date'].strftime("%d/%m/%Y %H:%M:%S") if 'end_date' in operation else ''
+            list_operations.append(operation)
+            index += 1
+        return list_operations
+
+
+
+    
