@@ -60,7 +60,11 @@ class Account:
             total_completed_operation = operation_collection.count_documents({"assigner": operator, 'status': "1"})
             total_uncompleted_operation = operation_collection.count_documents({"assigner": operator, 'status': "0"})
             total_station = station_collection.count_documents({"group_leader": fullname})
-
+        elif role=='admin':
+            total_operation = operation_collection.count_documents({})
+            total_completed_operation = operation_collection.count_documents({'status': "1"})
+            total_uncompleted_operation = operation_collection.count_documents({'status': "0"})
+            total_station = station_collection.count_documents({})
         result = {
             "total_operation": total_operation,
             "total_completed_operation": total_completed_operation,
@@ -104,6 +108,12 @@ class Account:
         elif role == 'group leader':
             agg = [
                 {"$match": {"assigner":username} },
+                {"$group" : {"_id" : "$work_code", "count" : {"$sum" : 1}}},
+                {"$sort" : {"count" : -1}},
+                {"$limit" : 3}
+            ]
+        elif role == 'admin':
+            agg = [
                 {"$group" : {"_id" : "$work_code", "count" : {"$sum" : 1}}},
                 {"$sort" : {"count" : -1}},
                 {"$limit" : 3}
