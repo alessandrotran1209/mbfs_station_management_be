@@ -206,6 +206,10 @@ async def search_operations(stationCode: str = '', startDate: str = '', endDate:
         list_operations, total = operation.search_group_operation(operator_name=operator_name, station_code=stationCode,
                                                             start_date=startDate,
                                                             end_date=endDate, work_code=workCode, status=status, page=p)
+    elif role == 'admin':
+        list_operations, total = operation.search_admin_operation(station_code=stationCode,
+                                                            start_date=startDate,
+                                                            end_date=endDate, work_code=workCode, status=status, page=p)
 
     return re.success_response(list_operations, total)
 
@@ -355,7 +359,11 @@ async def get_all_operations_on_search(stationCode: str = '', startDate: str = '
         list_operations = operation.search_all_group_operation(operator_name=operator_name, station_code=stationCode,
                                                             start_date=startDate,
                                                             end_date=endDate, status=status)
-
+    elif role == 'admin':
+        print('admin')
+        list_operations = operation.search_admin_all_operation(station_code=stationCode,
+                                                            start_date=startDate,
+                                                            end_date=endDate, status=status)
     return re.success_response(list_operations)
 
 

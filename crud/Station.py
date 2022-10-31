@@ -12,6 +12,8 @@ class Station:
 
         station_collection = client['station']
         query = {"operator": fullname} if role != 'group leader' else {"group_leader": fullname}
+        if role == 'admin':
+            query = {}
         total = station_collection.count_documents(query)
         records = station_collection.find(query, {"_id": 0}).skip((page - 1) * 10).limit(10)
 
