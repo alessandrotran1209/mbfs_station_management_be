@@ -102,15 +102,16 @@ class Station:
         client = mongo_conn.conn()
 
         group_leader_collection = client['group-leader']
+        user_collection = client['user']
         record = group_leader_collection.find_one({'username': username}, {"_id": 0, "group": 1})
         group_name = record["group"]
         station_collection = client['station']
         records = station_collection.distinct("operator", {"group": group_name})
         list_operators = []
         for record in records:
-            operator_username = mock.get_username(record)
+            operator_username = user_collection.find_one({"fullname": record})
             data = {
-                "username": operator_username,
+                "username": operator_username['username'],
                 "fullname": record
             }
             list_operators.append(data)
