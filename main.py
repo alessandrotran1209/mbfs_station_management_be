@@ -21,6 +21,7 @@ from models.SystemUser import SystemUser
 from models.TokenSchema import TokenSchema
 from models.UserAuth import UserAuth
 from models.UserOut import UserOut
+from models.Station import StationModel
 from utils.utils import create_access_token, create_refresh_token, verify_password, get_hashed_password
 from geopy.distance import geodesic
 import logging
@@ -390,3 +391,23 @@ async def change_password(request: Request, change_password_form: ChangePassword
     if result:
         return re.success_response()
     return re.error_response()
+
+@app.post('/insert-update-station')
+async def insert_update_station(request: Request):
+    try:
+        stations = await request.json()
+        access_token = request.headers.get('Authorization').split()[-1]
+        if access_token == 'null':
+            return re.unauthorized_response()
+        user = await get_current_user(access_token)
+        role = user.role
+        if role != 'admin':
+            return re.unauthorized_response()
+        
+        station = Station()
+        operation_result = station.insert_update_stations(stations)
+        if operation_result:
+            return re.success_response()
+    except Exception as e:
+        print(str(e))
+        return re.error_response()

@@ -1,7 +1,7 @@
 import hashlib
 
 from db.MongoConn import MongoConn
-
+from utils.mock import get_username
 import logging
 
 logger = logging.getLogger(__name__)
@@ -33,15 +33,15 @@ class Account:
             return u
 
     def insert_user(self, data):
-        try:
-            mongo_conn = MongoConn()
-            client = mongo_conn.conn()
-            user_collection = client['user']
+        
+        mongo_conn = MongoConn()
+        client = mongo_conn.conn()
+        user_collection = client['user']
 
-            user_collection.insert_one(data)
-        except Exception as e:
-            raise Exception(e)
-        return True
+        insertion_result = user_collection.insert_one(data)
+        if insertion_result.inserted_id:
+            return True
+        return False
 
     def get_statistics(self, operator, fullname, role):
         mongo_conn = MongoConn()
@@ -134,3 +134,4 @@ class Account:
             return result.matched_count > 0 
         except:
             return False
+        

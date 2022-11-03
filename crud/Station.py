@@ -1,6 +1,7 @@
 from crud.Account import Account
 from db.MongoConn import MongoConn
 import utils.mock as mock
+from utils.utils import get_hashed_password
 import logging
 
 logger = logging.getLogger(__name__)
@@ -44,8 +45,10 @@ class Station:
         station_collection = client['station']
         if role == 'operator':
             query = {"operator": fullname, "station_code": {'$regex': code}, "province": province, "district": {'$regex': district}}
-        else:
+        elif role == 'group leader':
             query = {"group_leader": fullname, "station_code": {'$regex': code}, "province": province, "district": {'$regex': district}}
+        elif role=='admin':
+            query = {"station_code": {'$regex': code}, "province": province, "district": {'$regex': district}}
         total = station_collection.count_documents(query)
         records = station_collection.find(
             query,
@@ -129,3 +132,35 @@ class Station:
         record = station_collection.find_one({'operator': fullname}, {"_id": 0, "group": 1})
         group_name = record["group"]
         return group_name
+
+    def insert_update_stations(self, stations):
+        print(stations)
+        mongo_conn = MongoConn()
+        client = mongo_conn.conn()
+        account = Account()
+
+        station_collection = client['station']
+        for station in stations:
+            print(station)
+            query = {'station_code': station["station_code"]}
+            duplicated_query = {'group': station["group"], 'operator': station["operator"]}
+            duplicated_user_count = station_collection.count_documents(duplicated_query)
+            deletion_result = station_collection.delete_one(query)
+            insert_result = station_collection.insert_one(station)
+
+            if insert_result.inserted_id:
+                if duplicated_user_count == 0:
+                    new_account = {
+                        'username': mock.get_username(station["operator"]),
+                        'password': get_hashed_password('Mobi$12345'),
+                        'fullname': station["operator"]
+                    }
+                    user_creation_result = account.insert_user(new_account)
+                    if not user_creation_result:
+                        logger.info(station)
+        return True
+
+
+        
+
+

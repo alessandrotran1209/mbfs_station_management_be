@@ -412,6 +412,3 @@ class Operation():
             list_operations.append(operation)
             index += 1
         return list_operations
-
-
-    
