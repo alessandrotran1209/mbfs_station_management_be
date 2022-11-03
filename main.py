@@ -21,7 +21,6 @@ from models.SystemUser import SystemUser
 from models.TokenSchema import TokenSchema
 from models.UserAuth import UserAuth
 from models.UserOut import UserOut
-from models.Station import StationModel
 from utils.utils import create_access_token, create_refresh_token, verify_password, get_hashed_password
 from geopy.distance import geodesic
 import logging
