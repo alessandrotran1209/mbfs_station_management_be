@@ -79,8 +79,9 @@ async def list_stations(request: Request = None):
     operator_name = user.username
     operator_fullname = user.fullname
     role = user.role
+    group = user.group if user.group else ''
     account = Account()
-    result = account.get_statistics(operator_name, operator_fullname, role)
+    result = account.get_statistics(operator_name, operator_fullname, role, group)
     return re.success_response(data=result)
 
 @app.get("/station")
@@ -91,8 +92,10 @@ async def list_stations(p: int = 1, request: Request = None):
     user = await get_current_user(access_token)
     role = user.role
     operator_fullname = user.fullname
+    group = user.group if user.group else ''
+    print(group)
     station = Station()
-    list_stations, total = station.list_stations(role=role, fullname=operator_fullname, page=p)
+    list_stations, total = station.list_stations(role=role, fullname=operator_fullname, page=p, group=group)
     return re.success_response(list_stations, total)
 
 
@@ -127,10 +130,11 @@ async def list_stations_code(request: Request):
     user = await get_current_user(access_token)
     operator_fullname = user.fullname
     role = user.role
+    branch = user.branch if user.branch else ''
     station = Station()
     list_stations_code = []
     if role == 'operator':
-        list_stations_code = station.list_operator_station(operator_fullname)
+        list_stations_code = station.list_operator_station(operator_fullname, branch)
     elif role == 'group leader':
         list_stations_code = station.list_group_station(operator_fullname)
         logger.info(list_stations_code)
@@ -145,8 +149,10 @@ async def search_stations(code: str = '', province: str = '', district: str = ''
     user = await get_current_user(access_token)
     operator_fullname = user.fullname
     role = user.role
+    group =user.group if user.group else ''
+    logger.info(user)
     station = Station()
-    list_stations, total = station.search_station(code=code, province=province, district=district, page=p, fullname=operator_fullname, role=role)
+    list_stations, total = station.search_station(code=code, province=province, district=district, page=p, fullname=operator_fullname, role=role, group=group)
     return re.success_response(list_stations, total)
 
 
