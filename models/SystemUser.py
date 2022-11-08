@@ -7,3 +7,4 @@ class SystemUser(UserOut):
     role: str
     fullname: str
     group: Union[str, None]
+    branch: Union[str, None]
