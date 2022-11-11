@@ -1,5 +1,6 @@
 from crud.Account import Account
 from db.MongoConn import MongoConn
+from utils.groups import get_group_username
 import utils.mock as mock
 from utils.utils import get_hashed_password
 import logging
@@ -41,7 +42,6 @@ class Station:
     def search_station(self, code='', province='', district='', page=1, fullname='', role='', group=''):
         mongo_conn = MongoConn()
         client = mongo_conn.conn()
-        print(group)
         station_collection = client['station']
         if role == 'operator':
             query = {"operator": fullname, "station_code": {'$regex': code}, "group": {'$regex': group}, "province": province, "district": {'$regex': district}}
@@ -112,7 +112,24 @@ class Station:
         records = station_collection.distinct("operator", {"group": group_name})
         list_operators = []
         for record in records:
-            operator_username = user_collection.find_one({"fullname": record})
+            number_of_users = user_collection.count_documents({"fullname": record})
+            if number_of_users == 1:       
+                operator_username = user_collection.find_one({"fullname": record})
+            else:
+                group_leader_usernames = get_group_username()
+                results = user_collection.find({"fullname": record})
+                for result in results:
+                    if "group" in result:
+                        if result["group"] == group_name:
+                            operator_username = {"username": result["username"]}
+                            continue                            
+                    else:
+                        print(group_leader_usernames)
+                        if result["username"] in group_leader_usernames:
+                            continue
+                        else:
+                            print(result)
+                            operator_username = {"username": result["username"]}                     
             data = {
                 "username": operator_username['username'],
                 "fullname": record

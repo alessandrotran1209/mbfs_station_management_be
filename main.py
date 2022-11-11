@@ -137,7 +137,6 @@ async def list_stations_code(request: Request):
         list_stations_code = station.list_operator_station(operator_fullname, branch)
     elif role == 'group leader':
         list_stations_code = station.list_group_station(operator_fullname)
-        logger.info(list_stations_code)
     return re.success_response(list_stations_code)
 
 
@@ -150,7 +149,6 @@ async def search_stations(code: str = '', province: str = '', district: str = ''
     operator_fullname = user.fullname
     role = user.role
     group =user.group if user.group else ''
-    logger.info(user)
     station = Station()
     list_stations, total = station.search_station(code=code, province=province, district=district, page=p, fullname=operator_fullname, role=role, group=group)
     return re.success_response(list_stations, total)
@@ -303,7 +301,6 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
             detail="Incorrect email or password"
         )
     role = account.get_role(form_data.username)
-    logger.info(role)
     return {
         "access_token": create_access_token(user['username'], role=role),
         "refresh_token": create_refresh_token(user['username'], role=role),
