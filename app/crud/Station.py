@@ -1,5 +1,6 @@
 from crud.Account import Account
 from db.MongoConn import MongoConn
+from utils.groups import get_group_username
 import utils.mock as mock
 from utils.utils import get_hashed_password
 import logging
@@ -7,12 +8,12 @@ import logging
 logger = logging.getLogger(__name__)
 
 class Station:
-    def list_stations(self, role='', fullname='', page=1):
+    def list_stations(self, role='', fullname='', page=1, group=''):
         mongo_conn = MongoConn()
         client = mongo_conn.conn()
 
         station_collection = client['station']
-        query = {"operator": fullname} if role != 'group leader' else {"group_leader": fullname}
+        query = {"operator": fullname, "group": {'$regex': group}} if role != 'group leader' else {"group_leader": fullname}
         if role == 'admin':
             query = {}
         total = station_collection.count_documents(query)
@@ -38,13 +39,12 @@ class Station:
             list_station_code.append(station["district"])
         return list(set(list_station_code))
 
-    def search_station(self, code='', province='', district='', page=1, fullname='', role=''):
+    def search_station(self, code='', province='', district='', page=1, fullname='', role='', group=''):
         mongo_conn = MongoConn()
         client = mongo_conn.conn()
-
         station_collection = client['station']
         if role == 'operator':
-            query = {"operator": fullname, "station_code": {'$regex': code}, "province": province, "district": {'$regex': district}}
+            query = {"operator": fullname, "station_code": {'$regex': code}, "group": {'$regex': group}, "province": province, "district": {'$regex': district}}
         elif role == 'group leader':
             query = {"group_leader": fullname, "station_code": {'$regex': code}, "province": province, "district": {'$regex': district}}
         elif role=='admin':
@@ -63,12 +63,12 @@ class Station:
 
         return list_station_code, total
 
-    def list_operator_station(self, operator_fullname):
+    def list_operator_station(self, operator_fullname, branch):
         mongo_conn = MongoConn()
         client = mongo_conn.conn()
 
         station_collection = client['station']
-        records = station_collection.find({"operator": operator_fullname}, {"_id": 0, "station_code": 1, "province": 1})
+        records = station_collection.find({"operator": operator_fullname, "branch": {'$regex': branch}}, {"_id": 0, "station_code": 1, "province": 1})
         list_station_code = []
         for station in records:
             list_station_code.append(station)
@@ -112,7 +112,24 @@ class Station:
         records = station_collection.distinct("operator", {"group": group_name})
         list_operators = []
         for record in records:
-            operator_username = user_collection.find_one({"fullname": record})
+            number_of_users = user_collection.count_documents({"fullname": record})
+            if number_of_users == 1:       
+                operator_username = user_collection.find_one({"fullname": record})
+            else:
+                group_leader_usernames = get_group_username()
+                results = user_collection.find({"fullname": record})
+                for result in results:
+                    if "group" in result:
+                        if result["group"] == group_name:
+                            operator_username = {"username": result["username"]}
+                            continue                            
+                    else:
+                        print(group_leader_usernames)
+                        if result["username"] in group_leader_usernames:
+                            continue
+                        else:
+                            print(result)
+                            operator_username = {"username": result["username"]}                     
             data = {
                 "username": operator_username['username'],
                 "fullname": record

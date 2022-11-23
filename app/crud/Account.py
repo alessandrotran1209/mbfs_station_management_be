@@ -29,7 +29,6 @@ class Account:
         user = user_collection.find({"username": username})
         for record in user:
             u = record
-            logger.info(record)
             return u
 
     def insert_user(self, data):
@@ -43,7 +42,7 @@ class Account:
             return True
         return False
 
-    def get_statistics(self, operator, fullname, role):
+    def get_statistics(self, operator, fullname, role, group):
         mongo_conn = MongoConn()
         client = mongo_conn.conn()
 
@@ -51,10 +50,10 @@ class Account:
         station_collection = client['station']
 
         if role == 'operator':
-            total_operation = operation_collection.count_documents({"operator": operator})
-            total_completed_operation = operation_collection.count_documents({"operator": operator, 'status': "1"})
-            total_uncompleted_operation = operation_collection.count_documents({"operator": operator, 'status': "0"})
-            total_station = station_collection.count_documents({"operator": fullname})
+            total_operation = operation_collection.count_documents({"operator": operator, "group": {"$regex": group}})
+            total_completed_operation = operation_collection.count_documents({"operator": operator, 'status': "1", "group": {"$regex": group}})
+            total_uncompleted_operation = operation_collection.count_documents({"operator": operator, 'status': "0", "group": {"$regex": group}})
+            total_station = station_collection.count_documents({"operator": fullname, "group": {"$regex": group}})
         elif role == 'group leader':
             total_operation = operation_collection.count_documents({"assigner": operator})
             total_completed_operation = operation_collection.count_documents({"assigner": operator, 'status': "1"})

@@ -406,6 +406,12 @@ class Operation():
 
         index = 1
         for operation in records:
+            operator = operation['operator']
+            user_collection = client['user']
+            user_record = user_collection.find_one({"username": operator })
+
+            operation["operator_fullname"] = user_record["fullname"]
+            operation["group"] = operation["group"]
             operation['index'] = index
             operation['start_date'] = operation['start_date'].strftime("%d/%m/%Y %H:%M:%S")
             operation['end_date'] = operation['end_date'].strftime("%d/%m/%Y %H:%M:%S") if 'end_date' in operation else ''
