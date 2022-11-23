@@ -44,3 +44,5 @@ def create_refresh_token(subject: Union[str, Any], expires_delta: int = None, ro
     to_encode = {"exp": expires_delta, "sub": str(subject), "role": role}
     encoded_jwt = jwt.encode(to_encode, JWT_REFRESH_SECRET_KEY, ALGORITHM)
     return encoded_jwt
+
+print(get_hashed_password('Mobi$12345'))
