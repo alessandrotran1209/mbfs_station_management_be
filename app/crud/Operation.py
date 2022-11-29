@@ -36,9 +36,9 @@ class Operation():
         group_leader_collection = client['group-leader']
         record = group_leader_collection.find_one({'username': operator_name}, {"_id": 0, "group": 1})
         group_name = record["group"]
-
+        print(group_name)
         operation_collection = client['operation']
-        total = operation_collection.count_documents({"assigner": operator_name})
+        total = operation_collection.count_documents({"group": group_name})
         records = operation_collection.find({"group": group_name}, {"_id": 0}).skip((page - 1) * 10).limit(
             10).sort([("status", 1), ("start_date", -1)]).collation(Collation(locale="en_US", numericOrdering=True))
 

@@ -6,10 +6,10 @@ from tkinter.tix import STATUS
 from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from starlette import status
+from utils.groups import get_group_username, get_group_value
 
 from crud.Operation import Operation
 from crud.Station import Station
-from db.MongoConn import MongoConn
 from crud.Account import Account
 from models.ChangePasswordForm import ChangePasswordForm
 import utils.Response as re
@@ -24,7 +24,7 @@ from models.UserOut import UserOut
 from utils.utils import create_access_token, create_refresh_token, verify_password, get_hashed_password
 from geopy.distance import geodesic
 import logging
-
+import api
 logging.config.fileConfig('logging.conf', disable_existing_loggers=False)
 
 # get root logger
@@ -46,6 +46,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(api.StationApi.router)
+
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -57,9 +59,11 @@ async def log_requests(request: Request, call_next):
 
     process_time = (time.time() - start_time) * 1000
     formatted_process_time = '{0:.2f}'.format(process_time)
-    logger.info(f"rid={idem} completed_in={formatted_process_time}ms status_code={response.status_code}")
+    logger.info(
+        f"rid={idem} completed_in={formatted_process_time}ms status_code={response.status_code}")
 
     return response
+
 
 @app.get("/")
 async def root():
@@ -70,88 +74,24 @@ async def root():
 async def say_hello(name: str):
     return {"message": f"Hello {name}"}
 
+
 @app.get("/statistics")
 async def list_stations(request: Request = None):
     access_token = request.headers.get('Authorization').split()[-1]
     if access_token == 'null':
         return re.unauthorized_response()
     user = await get_current_user(access_token)
+    print(user)
     operator_name = user.username
     operator_fullname = user.fullname
     role = user.role
     group = user.group if user.group else ''
+    if role == 'group leader':
+        group = get_group_value(user.username)
     account = Account()
-    result = account.get_statistics(operator_name, operator_fullname, role, group)
+    result = account.get_statistics(
+        operator_name, operator_fullname, role, group)
     return re.success_response(data=result)
-
-@app.get("/station")
-async def list_stations(p: int = 1, request: Request = None):
-    access_token = request.headers.get('Authorization').split()[-1]
-    if access_token == 'null':
-        return re.unauthorized_response()
-    user = await get_current_user(access_token)
-    role = user.role
-    operator_fullname = user.fullname
-    group = user.group if user.group else ''
-    print(group)
-    station = Station()
-    list_stations, total = station.list_stations(role=role, fullname=operator_fullname, page=p, group=group)
-    return re.success_response(list_stations, total)
-
-
-@app.get("/station/station_code")
-async def list_operator_station_code(request: Request = None):
-    access_token = request.headers.get('Authorization').split()[-1]
-    if access_token == 'null':
-        return re.unauthorized_response()
-    user = await get_current_user(access_token)
-    fullname = user.fullname
-    role = user.role
-    station = Station()
-    list_stations_code = station.list_station_code(role=role, fullname=fullname)
-    return re.success_response(list_stations_code)
-
-
-@app.get("/station")
-async def list_stations(p: int = 1, request: Request = None):
-    access_token = request.headers.get('Authorization').split()[-1]
-    if access_token == 'null':
-        return re.unauthorized_response()
-    station = Station()
-    list_stations, total = station.list_stations(page=p)
-    return re.success_response(list_stations, total)
-
-
-@app.get("/station/operator")
-async def list_stations_code(request: Request):
-    access_token = request.headers.get('Authorization').split()[-1]
-    if access_token == 'null':
-        return re.unauthorized_response()
-    user = await get_current_user(access_token)
-    operator_fullname = user.fullname
-    role = user.role
-    branch = user.branch if user.branch else ''
-    station = Station()
-    list_stations_code = []
-    if role == 'operator':
-        list_stations_code = station.list_operator_station(operator_fullname, branch)
-    elif role == 'group leader':
-        list_stations_code = station.list_group_station(operator_fullname)
-    return re.success_response(list_stations_code)
-
-
-@app.get("/station/q")
-async def search_stations(code: str = '', province: str = '', district: str = '', p: int = 1, request: Request = None):
-    access_token = request.headers.get('Authorization').split()[-1]
-    if access_token == 'null':
-        return re.unauthorized_response()
-    user = await get_current_user(access_token)
-    operator_fullname = user.fullname
-    role = user.role
-    group =user.group if user.group else ''
-    station = Station()
-    list_stations, total = station.search_station(code=code, province=province, district=district, page=p, fullname=operator_fullname, role=role, group=group)
-    return re.success_response(list_stations, total)
 
 
 @app.get("/operation")
@@ -166,9 +106,11 @@ async def list_operations(p: int, request: Request):
     list_operations = []
     total = 0
     if role == 'operator':
-        list_operations, total = operation.get_operations(operator_name=operator_name, page=p)
+        list_operations, total = operation.get_operations(
+            operator_name=operator_name, page=p)
     elif role == 'group leader':
-        list_operations, total = operation.get_group_operations(operator_name=operator_name, page=p)
+        list_operations, total = operation.get_group_operations(
+            operator_name=operator_name, page=p)
     elif role == 'admin':
         list_operations, total = operation.get_all_operations(page=p)
     return re.success_response(list_operations, total)
@@ -183,7 +125,8 @@ async def complete_operation(operation_data: OperationModel, request: Request):
     operator_name = user.username
     try:
         operation = Operation()
-        result = operation.complete_operation(operation_data.dict(), operator_name)
+        result = operation.complete_operation(
+            operation_data.dict(), operator_name)
         if result:
             return re.success_response()
     except Exception as e:
@@ -191,7 +134,7 @@ async def complete_operation(operation_data: OperationModel, request: Request):
 
 
 @app.get("/operation/q")
-async def search_operations(stationCode: str = '', startDate: str = '', endDate: str = '', workCode: str='', status: str = '',
+async def search_operations(stationCode: str = '', startDate: str = '', endDate: str = '', workCode: str = '', status: str = '',
                             p: int = 1, request: Request = None):
     access_token = request.headers.get('Authorization').split()[-1]
     if access_token == 'null':
@@ -204,16 +147,16 @@ async def search_operations(stationCode: str = '', startDate: str = '', endDate:
     total = 0
     if role == 'operator':
         list_operations, total = operation.search_operation(operator_name=operator_name, station_code=stationCode,
-                                                        start_date=startDate,
-                                                        end_date=endDate, work_code=workCode, status=status, page=p)
+                                                            start_date=startDate,
+                                                            end_date=endDate, work_code=workCode, status=status, page=p)
     elif role == 'group leader':
         list_operations, total = operation.search_group_operation(operator_name=operator_name, station_code=stationCode,
-                                                            start_date=startDate,
-                                                            end_date=endDate, work_code=workCode, status=status, page=p)
+                                                                  start_date=startDate,
+                                                                  end_date=endDate, work_code=workCode, status=status, page=p)
     elif role == 'admin':
         list_operations, total = operation.search_admin_operation(station_code=stationCode,
-                                                            start_date=startDate,
-                                                            end_date=endDate, work_code=workCode, status=status, page=p)
+                                                                  start_date=startDate,
+                                                                  end_date=endDate, work_code=workCode, status=status, page=p)
 
     return re.success_response(list_operations, total)
 
@@ -227,7 +170,8 @@ async def update_operation(operation_data: OperationModel, request: Request = No
     operator_name = user.username
     try:
         operation = Operation()
-        result = operation.update_operation(operation_data.dict(), operator_name)
+        result = operation.update_operation(
+            operation_data.dict(), operator_name)
         if result:
             return re.success_response()
     except Exception as e:
@@ -251,12 +195,14 @@ async def insert_operation(operation_data: OperationModel, request: Request):
     try:
         if role == 'operator':
             operation = Operation()
-            result = operation.insert_operation(operation_data.dict(), operator_name)
+            result = operation.insert_operation(
+                operation_data.dict(), operator_name)
             if result:
                 return re.success_response()
         elif role == 'group leader':
             operation = Operation()
-            result = operation.insert_operation_by_group_leader(operation_data.dict(), operator_name)
+            result = operation.insert_operation_by_group_leader(
+                operation_data.dict(), operator_name)
             if result:
                 return re.success_response()
     except Exception as e:
@@ -328,7 +274,8 @@ async def get_in_charge_operator(request: Request):
 async def get_daily_stats():
     operation = Operation()
     data, total = operation.get_group_progress()
-    return re.success_response(data = data, total=total)
+    return re.success_response(data=data, total=total)
+
 
 @app.get("/statistics/top")
 async def get_daily_stats(request: Request):
@@ -340,11 +287,11 @@ async def get_daily_stats(request: Request):
     role = user.role
     account = Account()
     top_operations = account.get_top_work(username, role)
-    return re.success_response(data = top_operations)
+    return re.success_response(data=top_operations)
+
 
 @app.get("/operation/search_all/q")
-async def get_all_operations_on_search(stationCode: str = '', startDate: str = '', endDate: str = '', workCode:str = '', status: str = ''
-                            , request: Request = None):
+async def get_all_operations_on_search(stationCode: str = '', startDate: str = '', endDate: str = '', workCode: str = '', status: str = '', request: Request = None):
     access_token = request.headers.get('Authorization').split()[-1]
     if access_token == 'null':
         return re.unauthorized_response()
@@ -356,17 +303,17 @@ async def get_all_operations_on_search(stationCode: str = '', startDate: str = '
     list_operations = []
     if role == 'operator':
         list_operations = operation.search_all_operation(fullname=operator_fullname, operator_name=operator_name, station_code=stationCode,
-                                                        start_date=startDate,
-                                                        end_date=endDate, work_code=workCode, status=status)
+                                                         start_date=startDate,
+                                                         end_date=endDate, work_code=workCode, status=status)
     elif role == 'group leader':
         list_operations = operation.search_all_group_operation(operator_name=operator_name, station_code=stationCode,
-                                                            start_date=startDate,
-                                                            end_date=endDate, status=status)
+                                                               start_date=startDate,
+                                                               end_date=endDate, status=status)
     elif role == 'admin':
         print('admin')
         list_operations = operation.search_admin_all_operation(station_code=stationCode,
-                                                            start_date=startDate,
-                                                            end_date=endDate, status=status)
+                                                               start_date=startDate,
+                                                               end_date=endDate, status=status)
     return re.success_response(list_operations)
 
 
@@ -389,10 +336,12 @@ async def change_password(request: Request, change_password_form: ChangePassword
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Incorrect password"
         )
-    result = account.change_password(user.username, get_hashed_password(change_password_form.newPassword))
+    result = account.change_password(
+        user.username, get_hashed_password(change_password_form.newPassword))
     if result:
         return re.success_response()
     return re.error_response()
+
 
 @app.post('/insert-update-station')
 async def insert_update_station(request: Request):
@@ -405,7 +354,7 @@ async def insert_update_station(request: Request):
         role = user.role
         if role != 'admin':
             return re.unauthorized_response()
-        
+
         station = Station()
         operation_result = station.insert_update_stations(stations)
         if operation_result:

@@ -55,9 +55,10 @@ class Account:
             total_uncompleted_operation = operation_collection.count_documents({"operator": operator, 'status': "0", "group": {"$regex": group}})
             total_station = station_collection.count_documents({"operator": fullname, "group": {"$regex": group}})
         elif role == 'group leader':
-            total_operation = operation_collection.count_documents({"assigner": operator})
-            total_completed_operation = operation_collection.count_documents({"assigner": operator, 'status': "1"})
-            total_uncompleted_operation = operation_collection.count_documents({"assigner": operator, 'status': "0"})
+            print(group)
+            total_operation = operation_collection.count_documents({"group": group})
+            total_completed_operation = operation_collection.count_documents({"group": group, 'status': "1"})
+            total_uncompleted_operation = operation_collection.count_documents({"group": group, 'status': "0"})
             total_station = station_collection.count_documents({"group_leader": fullname})
         elif role=='admin':
             total_operation = operation_collection.count_documents({})
