@@ -145,18 +145,13 @@ async def search_operations(stationCode: str = '', startDate: str = '', endDate:
     if operator_name in get_group_username():
         group = get_group_value(operator_name)
     else:
-        group = user.group
+        group = user.group if user.group else ''
     operation = Operation()
     list_operations = []
     total = 0
 
-    if role == 'admin':
-        list_operations, total = operation.search_admin_operation(station_code=stationCode,
-                                                                  start_date=startDate,
-                                                                  end_date=endDate, work_code=workCode, status=status, page=p, province=province, district=district)
-    else:
-        list_operations, total = operation.search_admin_operation(group=group, role=role, operator_name=operator_name, station_code=stationCode,
-                                                                  start_date=startDate, end_date=endDate, work_code=workCode, status=status, page=p, province=province, district=district)
+    list_operations, total = operation.search_admin_operation(group=group, role=role, operator_name=operator_name, station_code=stationCode,
+                                                              start_date=startDate, end_date=endDate, work_code=workCode, status=status, page=p, province=province, district=district)
 
     return re.success_response(list_operations, total)
 
@@ -318,7 +313,7 @@ async def get_all_operations_on_search(stationCode: str = '', startDate: str = '
     elif role == 'admin':
         list_operations = operation.search_admin_all_operation(work_code=workCode, station_code=stationCode,
                                                                start_date=startDate,
-                                                               end_date=endDate, status=status, province=query_params['province'], district=query_params['province'])
+                                                               end_date=endDate, status=status, province=query_params['province'], district=query_params['district'])
     return re.success_response(list_operations)
 
 

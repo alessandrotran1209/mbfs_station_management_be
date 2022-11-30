@@ -382,7 +382,7 @@ class Operation():
                 "%d/%m/%Y %H:%M:%S")
             operation['end_date'] = operation['end_date'].strftime(
                 "%d/%m/%Y %H:%M:%S") if 'end_date' in operation else ''
-            operation['operator'] = fullname
+            operation['operator_fullname'] = fullname
             list_operations.append(operation)
             index += 1
         return list_operations
@@ -424,9 +424,8 @@ class Operation():
             user_collection = client['user']
             user_record = user_collection.find_one(
                 {"username": operation['operator']})
-            if user_record:
-                operation["operator_fullname"] = user_record["fullname"]
-            
+            operation["operator_fullname"] = user_record["fullname"]
+
             list_operations.append(operation)
             index += 1
         return list_operations
