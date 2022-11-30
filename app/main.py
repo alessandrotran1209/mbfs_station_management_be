@@ -134,7 +134,7 @@ async def complete_operation(operation_data: OperationModel, request: Request):
 
 
 @app.get("/operation/q")
-async def search_operations(stationCode: str = '', startDate: str = '', endDate: str = '', workCode: str = '', status: str = '',
+async def search_operations(stationCode: str = '', startDate: str = '', endDate: str = '', workCode: str = '', status: str = '', province: str = '', district: str = '',
                             p: int = 1, request: Request = None):
     access_token = request.headers.get('Authorization').split()[-1]
     if access_token == 'null':
@@ -142,21 +142,21 @@ async def search_operations(stationCode: str = '', startDate: str = '', endDate:
     user = await get_current_user(access_token)
     operator_name = user.username
     role = user.role
+    if operator_name in get_group_username():
+        group = get_group_value(operator_name)
+    else:
+        group = user.group
     operation = Operation()
     list_operations = []
     total = 0
-    if role == 'operator':
-        list_operations, total = operation.search_operation(operator_name=operator_name, station_code=stationCode,
-                                                            start_date=startDate,
-                                                            end_date=endDate, work_code=workCode, status=status, page=p)
-    elif role == 'group leader':
-        list_operations, total = operation.search_group_operation(operator_name=operator_name, station_code=stationCode,
-                                                                  start_date=startDate,
-                                                                  end_date=endDate, work_code=workCode, status=status, page=p)
-    elif role == 'admin':
+
+    if role == 'admin':
         list_operations, total = operation.search_admin_operation(station_code=stationCode,
                                                                   start_date=startDate,
-                                                                  end_date=endDate, work_code=workCode, status=status, page=p)
+                                                                  end_date=endDate, work_code=workCode, status=status, page=p, province=province, district=district)
+    else:
+        list_operations, total = operation.search_admin_operation(group=group, role=role, operator_name=operator_name, station_code=stationCode,
+                                                                  start_date=startDate, end_date=endDate, work_code=workCode, status=status, page=p, province=province, district=district)
 
     return re.success_response(list_operations, total)
 
@@ -292,12 +292,18 @@ async def get_daily_stats(request: Request):
 
 @app.get("/operation/search_all/q")
 async def get_all_operations_on_search(stationCode: str = '', startDate: str = '', endDate: str = '', workCode: str = '', status: str = '', request: Request = None):
+    query_params = request.query_params
+
     access_token = request.headers.get('Authorization').split()[-1]
     if access_token == 'null':
         return re.unauthorized_response()
     user = await get_current_user(access_token)
     operator_name = user.username
     role = user.role
+    if operator_name in get_group_username():
+        group = get_group_value(operator_name)
+    else:
+        group = user.group
     operator_fullname = user.fullname
     operation = Operation()
     list_operations = []
@@ -306,14 +312,13 @@ async def get_all_operations_on_search(stationCode: str = '', startDate: str = '
                                                          start_date=startDate,
                                                          end_date=endDate, work_code=workCode, status=status)
     elif role == 'group leader':
-        list_operations = operation.search_all_group_operation(operator_name=operator_name, station_code=stationCode,
+        list_operations = operation.search_all_group_operation(group=group, station_code=stationCode,
                                                                start_date=startDate,
                                                                end_date=endDate, status=status)
     elif role == 'admin':
-        print('admin')
-        list_operations = operation.search_admin_all_operation(station_code=stationCode,
+        list_operations = operation.search_admin_all_operation(work_code=workCode, station_code=stationCode,
                                                                start_date=startDate,
-                                                               end_date=endDate, status=status)
+                                                               end_date=endDate, status=status, province=query_params['province'], district=query_params['province'])
     return re.success_response(list_operations)
 
 
