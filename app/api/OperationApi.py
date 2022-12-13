@@ -1,12 +1,13 @@
-from fastapi import APIRouter, Request
+import logging
+from fastapi import APIRouter, Request, Depends
 from crud.Operation import Operation
-from deps import get_current_user
+from deps import get_current_user, validate_access_token
 from utils.groups import get_group_username, get_group_value
 import utils.Response as re
-
 from models.Operation import OperationModel
 
 router = APIRouter(prefix="/operation")
+logger = logging.getLogger(__name__)
 
 
 @router.get("")
@@ -150,3 +151,15 @@ async def get_all_operations_on_search(stationCode: str = '', startDate: str = '
                                                                start_date=startDate,
                                                                end_date=endDate, status=status, province=query_params['province'], district=query_params['district'])
     return re.success_response(list_operations)
+
+
+@router.get("/zone/q", summary="Search operations on zone scale level")
+async def search_zone_operations(request: Request = Depends(validate_access_token)):
+    # try:
+    operation = Operation()
+    list_operations, total = operation.search_zone_operation(
+        request.query_params)
+    return re.success_response(list_operations, total)
+    # except Exception as e:
+    #     logger.warning(e)
+    #     return re.error_response()

@@ -1,3 +1,4 @@
+import pandas as pd
 import re
 import sys
 
@@ -24,6 +25,8 @@ def convert(text):
         # deal with upper case
         output = re.sub(regex.upper(), replace.upper(), output)
     return output
+
+
 def get_username(name):
     name_break_down = name.split()
     username = convert(name_break_down[-1])

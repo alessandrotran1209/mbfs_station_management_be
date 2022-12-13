@@ -197,7 +197,6 @@ class Operation():
             {"from": "station", "localField": "station_code",
              "foreignField": "station_code", "as": "new"}
         }
-
         match_query = {
             '$match': {
                 'station_code': {'$regex': station_code},
@@ -493,3 +492,77 @@ class Operation():
                 logger.info(operation)
                 logger.info(e.args)
         return list_operations
+
+    def search_zone_operation(self, query_data):
+        mongo_conn = MongoConn()
+        client = mongo_conn.conn()
+
+        end_date = datetime.today() + timedelta(days=1) if query_data['endDate'] == '' else datetime.strptime(query_data['endDate'],
+                                                                                                              '%d/%m/%Y') + timedelta(
+            days=1)
+        start_date = datetime(1, 1, 1, 0, 0) if query_data['startDate'] == '' else datetime.strptime(
+            query_data['startDate'], '%d/%m/%Y')
+
+        page = int(query_data['p']) if query_data["p"] != '' else 1
+
+        station_collection = client['station']
+
+        pagination_query = {
+            '$facet': {
+                'paginatedResults': [{'$skip': (page-1)*10}, {'$limit': 10}],
+                'totalCount': [
+                    {'$count': 'count'}
+                ]
+            }
+        }
+        sort_query = {
+            "$sort": {"operation.status": 1, "operation.start_date": -1}
+        }
+        match_query = {
+            '$match': {
+                'zone': query_data['zone'],
+                'province': {'$regex': query_data['province']},
+                'district': {'$regex': query_data['district']},
+                'station_code': {'$regex': query_data['stationCode']},
+
+            }
+        }
+        project_query = {
+            "$project": {"_id": 0, "operation._id": 0}
+        }
+        lookup_query = {
+            "$lookup": {
+                "from": "operation", "localField": "group",
+                "foreignField": "group", "as": "operation"
+            }
+        }
+        unwind_query = {
+            "$unwind": "$operation"
+        }
+
+        match_postquery = {
+            '$match': {
+                'operation.start_date': {'$gte': start_date, '$lt': end_date},
+                'operation.work_code': {'$regex': query_data['workCode']},
+                'operation.status': {'$regex': str(query_data['status'])},
+            }
+        }
+        pipeline = [match_query, lookup_query, unwind_query,
+                    match_postquery, project_query, pagination_query]
+
+        records = station_collection.aggregate(pipeline)
+
+        list_operations = []
+        index = 1
+        for result in records:
+            total = result['totalCount'][0]['count'] if result['totalCount'] else 0
+            for operation in result['paginatedResults']:
+                operation = operation['operation']
+                operation['index'] = index + (page-1) * 10
+                operation['start_date'] = operation['start_date'].strftime(
+                    "%d/%m/%Y %H:%M:%S")
+                operation['end_date'] = operation['end_date'].strftime(
+                    "%d/%m/%Y %H:%M:%S") if 'end_date' in operation else ''
+                list_operations.append(operation)
+                index += 1
+        return list_operations, total

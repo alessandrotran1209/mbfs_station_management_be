@@ -120,3 +120,13 @@ async def get_station_suggestion(request: Request = Depends(validate_access_toke
         return re.success_response(ret_data)
     except:
         return re.error_response()
+
+
+@router.get('/prefetch/q', summary="Prefetch data for admin search in report filtered by zone")
+async def get_station_suggestion(zone: str, request: Request = Depends(validate_access_token)):
+    try:
+        station = Station()
+        ret_data = station.prefetch_zone_search_data(zone)
+        return re.success_response(ret_data)
+    except:
+        return re.error_response()

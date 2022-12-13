@@ -93,6 +93,13 @@ async def list_stations(request: Request = None):
     return re.success_response(data=result)
 
 
+@app.get("/zone-statistics")
+async def list_stations(user: Request = Depends(get_current_user), request: Request = None):
+    account = Account()
+    result = account.get_zone_statistics(user, request.query_params)
+    return re.success_response(data=result)
+
+
 @app.post('/signup', summary="Create new user")
 async def create_user(data: UserAuth):
     user = {

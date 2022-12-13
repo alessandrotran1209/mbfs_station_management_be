@@ -196,6 +196,21 @@ class Station:
                         logger.info(station)
         return True
 
+    def prefetch_zone_search_data(self, zone: str):
+        mongo_conn = MongoConn()
+        client = mongo_conn.conn()
+
+        station_collection = client['station']
+
+        query = {"zone": zone}
+        records = station_collection.find(
+            query, {"_id": 0, "station_code": 1, "province": 1, "district": 1})
+
+        stations_list = []
+        for station in records:
+            stations_list.append(station)
+        return stations_list
+
     def prefetch_search_data(self):
         mongo_conn = MongoConn()
         client = mongo_conn.conn()
